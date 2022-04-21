@@ -1,107 +1,107 @@
+use chrono::{Utc, DateTime};
 use serde::{Deserialize, Serialize};
-use time::{serde::rfc3339, Date, OffsetDateTime, Time};
 use uuid::Uuid;
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct NewOrder {
     #[serde(rename = "_id")]
-    _id: Uuid,
-    #[serde(rename = "_updatedDate", with = "rfc3339")]
-    _updated_date: OffsetDateTime,
+    pub _id: Uuid,
+    #[serde(rename = "_updatedDate")]
+    pub _updated_date: DateTime<Utc>,
     #[serde(rename = "buyerLanguage")]
-    buyer_language: BuyerLanguage,
+    pub buyer_language: BuyerLanguage,
     #[serde(rename = "cartId")]
-    cart_id: Option<Uuid>,
+    pub cart_id: Option<Uuid>,
     #[serde(rename = "channelInfo")]
-    channel_info: ChannelInfo,
+    pub channel_info: ChannelInfo,
     #[serde(rename = "enteredBy")]
-    entered_by: EnteredBy,
+    pub entered_by: EnteredBy,
     #[serde(rename = "billingInfo")]
-    billing_info: Option<BillingInfo>,
+    pub billing_info: Option<BillingInfo>,
     #[serde(rename = "buyerInfo")]
-    buyer_info: BuyerInfo,
+    pub buyer_info: BuyerInfo,
     #[serde(rename = "buyerNote")]
-    buyer_note: Option<String>,
-    #[serde(rename = "_dateCreated", with = "rfc3339")]
-    _date_created: OffsetDateTime,
+    pub buyer_note: Option<String>,
+    #[serde(rename = "_dateCreated")]
+    pub _date_created: DateTime<Utc>,
     #[serde(rename = "currency")]
-    currency: String,
+    pub currency: String,
     #[serde(rename = "fulfillmentStatus")]
-    fulfillment_status: FulfillmentStatus,
+    pub fulfillment_status: FulfillmentStatus,
     #[serde(rename = "fulfillments")]
-    fulfillments: Option<Vec<Fulfillment>>,
+    pub fulfillments: Option<Vec<Fulfillment>>,
     #[serde(rename = "archived")]
-    archived: bool,
+    pub archived: bool,
     #[serde(rename = "activities")]
-    activities: Vec<Activity>,
+    pub activities: Vec<Activity>,
     #[serde(rename = "number")]
-    number: u64,
+    pub number: u64,
     #[serde(rename = "paymentStatus")]
-    payment_status: PaymentStatus,
+    pub payment_status: PaymentStatus,
     #[serde(rename = "shippingInfo")]
-    shipping_info: Option<ShippingInfo>,
+    pub shipping_info: Option<ShippingInfo>,
     #[serde(rename = "lineItems")]
-    line_items: Vec<OrderLineItem>,
+    pub line_items: Vec<OrderLineItem>,
     #[serde(rename = "totals")]
-    totals: Totals,
+    pub totals: Totals,
     #[serde(rename = "weightUnit")]
-    weight_unit: Option<WeightUnit>,
+    pub weight_unit: Option<WeightUnit>,
     #[serde(rename = "customField")]
-    custom_field: Option<CustomField>,
+    pub custom_field: Option<CustomField>,
     #[serde(rename = "discount")]
-    discount: Option<Discount>,
+    pub discount: Option<Discount>,
     #[serde(rename = "refund")]
-    refunds: Option<Vec<Refund>>,
+    pub refunds: Option<Vec<Refund>>,
     // The following field is only present when
     // the order is a subscription
     #[serde(rename = "subscriptionInfo")]
-    subscription_info: Option<SubscriptionInfo>,
+    pub subscription_info: Option<SubscriptionInfo>,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Refund {
     #[serde(rename = "id")]
-    id: String,
-    #[serde(rename = "dateCreated", with = "rfc3339")]
-    date_created: OffsetDateTime,
+    pub id: String,
+    #[serde(rename = "dateCreated")]
+    pub date_created: DateTime<Utc>,
     #[serde(rename = "amount")]
-    amount: String,
+    pub amount: String,
     #[serde(rename = "reason")]
-    reason: Option<String>,
+    pub reason: Option<String>,
     #[serde(rename = "externalRefund")]
-    external_refund: bool,
+    pub external_refund: bool,
     #[serde(rename = "paymentProviderTransactionId")]
-    payment_provider_transaction_id: Option<String>,
+    pub payment_provider_transaction_id: Option<String>,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Fulfillment {
     #[serde(rename = "id")]
-    id: String,
-    #[serde(rename = "dateCreated", with = "rfc3339")]
-    date_created: OffsetDateTime,
+    pub id: String,
+    #[serde(rename = "dateCreated")]
+    pub date_created: DateTime<Utc>,
     #[serde(rename = "lineItems")]
-    line_items: Vec<FulfillmentLineItem>,
+    pub line_items: Vec<FulfillmentLineItem>,
     #[serde(rename = "tackingInfo")]
-    tacking_info: Option<TrackingInfo>,
+    pub tacking_info: Option<TrackingInfo>,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct TrackingInfo {
     #[serde(rename = "trackingNumber")]
-    tracking_number: String,
+    pub tracking_number: String,
     #[serde(rename = "shippingProvider")]
-    shipping_provider: String,
+    pub shipping_provider: String,
     #[serde(rename = "trackingLink")]
-    tracking_link: String,
+    pub tracking_link: String,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct FulfillmentLineItem {
     #[serde(rename = "index")]
-    index: u32,
+    pub index: u32,
     #[serde(rename = "quantity")]
-    quantity: Option<u32>,
+    pub quantity: Option<u32>,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -113,9 +113,9 @@ pub enum BuyerLanguage {
 #[derive(Debug, Deserialize, Serialize)]
 pub struct ChannelInfo {
     #[serde(rename = "externalOrderId")]
-    external_order_id: Option<String>,
+    pub external_order_id: Option<String>,
     #[serde(rename = "externalOrderUrl")]
-    external_order_url: Option<String>,
+    pub external_order_url: Option<String>,
     #[serde(rename = "type")]
     r#type: ChannelInfoType,
 }
@@ -137,9 +137,9 @@ pub enum ChannelInfoType {
 #[derive(Debug, Deserialize, Serialize)]
 pub struct EnteredBy {
     #[serde(rename = "id")]
-    id: Uuid,
+    pub id: Uuid,
     #[serde(rename = "identityType")]
-    identity_type: EnteredByIdentityType,
+    pub identity_type: EnteredByIdentityType,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -157,66 +157,66 @@ pub enum EnteredByIdentityType {
 #[derive(Debug, Deserialize, Serialize)]
 pub struct BillingInfo {
     #[serde(rename = "address")]
-    address: Option<Address>,
+    pub address: Option<Address>,
     #[serde(rename = "firstName")]
-    first_name: Option<String>,
+    pub first_name: Option<String>,
     #[serde(rename = "lastName")]
-    last_name: Option<String>,
+    pub last_name: Option<String>,
     #[serde(rename = "email")]
-    email: Option<String>,
+    pub email: Option<String>,
     #[serde(rename = "phone")]
-    phone: Option<String>,
+    pub phone: Option<String>,
     #[serde(rename = "company")]
-    company: Option<String>,
+    pub company: Option<String>,
     #[serde(rename = "vatId")]
-    vat_id: Option<VatId>,
+    pub vat_id: Option<VatId>,
     #[serde(rename = "externalTransactionId")]
     #[deprecated(note = "replaced with paymentProviderTransactionId")]
-    external_transaction_id: Option<Uuid>,
-    #[serde(rename = "paidDate", with = "rfc3339::option")]
-    paid_date: Option<OffsetDateTime>,
+    pub external_transaction_id: Option<Uuid>,
+    #[serde(rename = "paidDate")]
+    pub paid_date: Option<DateTime<Utc>>,
     // REVIEW: Enum? ("VISA")
     #[serde(rename = "paymentMethod")]
-    payment_method: Option<String>,
+    pub payment_method: Option<String>,
     // REVIEW: Uuid?
     #[serde(rename = "paymentGatewayTransactionId")]
-    payment_gateway_transaction_id: Option<String>,
+    pub payment_gateway_transaction_id: Option<String>,
     #[serde(rename = "paymentProviderTransactionId")]
-    payment_provider_transaction_id: Option<Uuid>,
+    pub payment_provider_transaction_id: Option<Uuid>,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Address {
     #[serde(rename = "formatted")]
-    formatted: Option<String>,
+    pub formatted: Option<String>,
     #[serde(rename = "city")]
-    city: String,
+    pub city: String,
     #[serde(rename = "country")]
-    country: String,
+    pub country: String,
     #[serde(rename = "addressLine")]
-    address_line: String,
+    pub address_line: String,
     #[serde(rename = "addressLine2")]
-    address_line_2: Option<String>,
+    pub address_line_2: Option<String>,
     #[serde(rename = "streetAddress")]
-    street_address: Option<StreetAddress>,
+    pub street_address: Option<StreetAddress>,
     #[serde(rename = "postalCode")]
-    postal_code: String,
+    pub postal_code: String,
     #[serde(rename = "subdivision")]
-    subdivision: String,
+    pub subdivision: String,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct StreetAddress {
     #[serde(rename = "name")]
-    name: String,
+    pub name: String,
     #[serde(rename = "number")]
-    number: String,
+    pub number: String,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct VatId {
     #[serde(rename = "number")]
-    number: String,
+    pub number: String,
     #[serde(rename = "type")]
     r#type: VatIdType,
 }
@@ -232,17 +232,17 @@ pub enum VatIdType {
 #[derive(Debug, Deserialize, Serialize)]
 pub struct BuyerInfo {
     #[serde(rename = "id")]
-    id: String,
+    pub id: String,
     #[serde(rename = "email")]
-    email: String,
+    pub email: String,
     #[serde(rename = "firstName")]
-    first_name: String,
+    pub first_name: String,
     #[serde(rename = "lastName")]
-    last_name: String,
+    pub last_name: String,
     #[serde(rename = "phone")]
-    phone: Option<String>,
+    pub phone: Option<String>,
     #[serde(rename = "identityType")]
-    identity_type: IdentityType,
+    pub identity_type: IdentityType,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -263,74 +263,74 @@ pub enum IdentityType {
 #[derive(Debug, Deserialize, Serialize)]
 pub struct PriceData {
     #[serde(rename = "price")]
-    price: String,
+    pub price: String,
     #[serde(rename = "totalPrice")]
-    total_price: f64,
+    pub total_price: f64,
     #[serde(rename = "taxIncludedInPrice")]
-    tax_included_in_price: bool,
+    pub tax_included_in_price: bool,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct ShippingInfo {
     #[serde(rename = "deliverByDate")]
-    deliver_by_date: Option<String>,
+    pub deliver_by_date: Option<String>,
     #[serde(rename = "deliveryOption")]
-    delivery_option: Option<String>,
+    pub delivery_option: Option<String>,
     #[serde(rename = "estimatedDeliveryTime")]
-    estimated_delivery_time: Option<String>,
+    pub estimated_delivery_time: Option<String>,
     #[serde(rename = "shipmentDetails")]
     // REVIEW: Make *_details an enum?
-    shipment_details: ShipmentDetails,
+    pub shipment_details: ShipmentDetails,
     #[serde(rename = "pickupDetails")]
-    pickup_details: Option<PickupDetails>,
+    pub pickup_details: Option<PickupDetails>,
     #[serde(rename = "shippingRegion")]
-    shipping_region: Option<String>,
+    pub shipping_region: Option<String>,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct ShipmentDetails {
     #[serde(rename = "address")]
-    address: Address,
+    pub address: Address,
     #[serde(rename = "firstName")]
-    first_name: String,
+    pub first_name: String,
     #[serde(rename = "lastName")]
-    last_name: String,
+    pub last_name: String,
     #[serde(rename = "email")]
-    email: String,
+    pub email: String,
     #[serde(rename = "phone")]
-    phone: String,
+    pub phone: String,
     #[serde(rename = "company")]
-    company: String,
+    pub company: String,
     #[serde(rename = "tax")]
-    tax: f64,
+    pub tax: f64,
     #[serde(rename = "discount")]
-    discount: f64,
+    pub discount: f64,
     #[serde(rename = "priceData")]
-    price_data: Option<ShipmentPriceData>,
+    pub price_data: Option<ShipmentPriceData>,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct PickupDetails {
     #[serde(rename = "pickupInstructions")]
-    pickup_instructions: String,
+    pub pickup_instructions: String,
     #[serde(rename = "pickupAddress")]
-    pickup_address: Address,
+    pub pickup_address: Address,
     #[serde(rename = "firstName")]
-    first_name: String,
+    pub first_name: String,
     #[serde(rename = "lastName")]
-    last_name: String,
+    pub last_name: String,
     #[serde(rename = "email")]
-    email: String,
+    pub email: String,
     #[serde(rename = "phone")]
-    phone: String,
+    pub phone: String,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct ShipmentPriceData {
     #[serde(rename = "price")]
-    price: String,
+    pub price: String,
     #[serde(rename = "taxIncludedInPrice")]
-    tax_included_in_price: bool,
+    pub tax_included_in_price: bool,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -349,8 +349,8 @@ pub enum FulfillmentStatus {
 pub struct Activity {
     #[serde(rename = "type")]
     r#type: ActivityType,
-    #[serde(rename = "timestamp", with = "rfc3339")]
-    timestamp: OffsetDateTime,
+    #[serde(rename = "timestamp")]
+    pub timestamp: DateTime<Utc>,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -400,55 +400,55 @@ pub enum PaymentStatus {
 #[derive(Debug, Deserialize, Serialize)]
 pub struct OrderLineItem {
     #[serde(rename = "index")]
-    index: Option<u64>,
+    pub index: Option<u64>,
     #[serde(rename = "quantity")]
-    quantity: u64,
+    pub quantity: u64,
     #[serde(rename = "price")]
-    price: f64,
+    pub price: f64,
     #[serde(rename = "name")]
-    name: String,
+    pub name: String,
     #[serde(rename = "translatedName")]
-    translated_name: Option<String>,
+    pub translated_name: Option<String>,
     #[serde(rename = "productId")]
-    product_id: Option<Uuid>,
+    pub product_id: Option<Uuid>,
     #[serde(rename = "totalPrice")]
-    total_price: f64,
+    pub total_price: f64,
     #[serde(rename = "lineItemType")]
-    line_item_type: Option<LineItemType>,
+    pub line_item_type: Option<LineItemType>,
     #[serde(rename = "options")]
-    options: Vec<OrderLineItemOption>,
+    pub options: Vec<OrderLineItemOption>,
     #[serde(rename = "customTextFields")]
-    custom_text_fields: Option<Vec<CustomTextField>>,
+    pub custom_text_fields: Option<Vec<CustomTextField>>,
     #[serde(rename = "weight")]
-    weight: Option<f64>,
+    pub weight: Option<f64>,
     #[serde(rename = "sku")]
-    sku: Option<String>,
+    pub sku: Option<String>,
     #[serde(rename = "discount")]
-    discount: Option<f64>,
+    pub discount: Option<f64>,
     #[serde(rename = "tax")]
-    tax: Option<f64>,
+    pub tax: Option<f64>,
     #[serde(rename = "taxGroupId")]
-    tax_group_id: Option<String>,
+    pub tax_group_id: Option<String>,
     #[serde(rename = "taxIncludedInPrice")]
-    tax_included_in_price: bool,
+    pub tax_included_in_price: bool,
     #[serde(rename = "fulfillerId")]
-    fulfiller_id: Option<String>,
+    pub fulfiller_id: Option<String>,
     #[serde(rename = "variantId")]
-    variant_id: Option<String>,
+    pub variant_id: Option<String>,
     #[serde(rename = "priceData")]
-    price_data: PriceData,
+    pub price_data: PriceData,
     #[serde(rename = "mediaItem")]
-    media_item: OrderMediaItem,
+    pub media_item: OrderMediaItem,
     #[serde(rename = "notes")]
-    notes: Option<String>,
+    pub notes: Option<String>,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct CustomTextField {
     #[serde(rename = "title")]
-    title: String,
+    pub title: String,
     #[serde(rename = "value")]
-    value: String,
+    pub value: String,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -464,19 +464,19 @@ pub enum LineItemType {
 
 pub struct OrderLineItemOption {
     #[serde(rename = "option")]
-    option: String,
+    pub option: String,
     #[serde(rename = "selection")]
-    selection: String,
+    pub selection: String,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct OrderMediaItem {
     #[serde(rename = "altText")]
-    alt_text: Option<String>,
+    pub alt_text: Option<String>,
     #[serde(rename = "id")]
-    id: String,
+    pub id: String,
     #[serde(rename = "src")]
-    src: String,
+    pub src: String,
     #[serde(rename = "type")]
     r#type: OrderMediaItemType,
 }
@@ -490,19 +490,19 @@ pub enum OrderMediaItemType {
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Totals {
     #[serde(rename = "discount")]
-    discount: f64,
+    pub discount: f64,
     #[serde(rename = "quantity")]
-    quantity: u64,
+    pub quantity: u64,
     #[serde(rename = "shipping")]
-    shipping: f64,
+    pub shipping: f64,
     #[serde(rename = "subtotal")]
-    subtotal: f64,
+    pub subtotal: f64,
     #[serde(rename = "tax")]
-    tax: f64,
+    pub tax: f64,
     #[serde(rename = "total")]
-    total: f64,
+    pub total: f64,
     #[serde(rename = "weight")]
-    weight: f64,
+    pub weight: f64,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -516,49 +516,49 @@ pub enum WeightUnit {
 #[derive(Debug, Deserialize, Serialize)]
 pub struct CustomField {
     #[serde(rename = "value")]
-    value: String,
+    pub value: String,
     #[serde(rename = "title")]
-    title: String,
+    pub title: String,
     #[serde(rename = "translatedTitle")]
-    translated_title: String,
+    pub translated_title: String,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Discount {
     #[serde(rename = "appliedCoupon")]
-    applied_coupon: AppliedCoupon,
+    pub applied_coupon: AppliedCoupon,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct AppliedCoupon {
     #[serde(rename = "code")]
-    code: String,
+    pub code: String,
     #[serde(rename = "couponId")]
-    coupon_id: String,
+    pub coupon_id: String,
     #[serde(rename = "name")]
-    name: String,
+    pub name: String,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct SubscriptionInfo {
     #[serde(rename = "id")]
-    id: Uuid,
+    pub id: Uuid,
     #[serde(rename = "cycleNumber")]
-    cycle_number: u32,
+    pub cycle_number: u32,
     #[serde(rename = "subscriptionSettings")]
-    subscription_settings: SubscriptionSettings,
+    pub subscription_settings: SubscriptionSettings,
     #[serde(rename = "subscriptionOptionInfo")]
-    subscription_option_info: SubscriptionOptionInfo,
+    pub subscription_option_info: SubscriptionOptionInfo,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct SubscriptionSettings {
     #[serde(rename = "frequency")]
-    frequency: SubscroptionFrequency,
+    pub frequency: SubscroptionFrequency,
     #[serde(rename = "autoRenewal")]
-    auto_renewal: bool,
+    pub auto_renewal: bool,
     #[serde(rename = "billingCycles")]
-    billing_cycles: u32,
+    pub billing_cycles: u32,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -579,11 +579,11 @@ pub enum SubscroptionFrequency {
 #[derive(Debug, Deserialize, Serialize)]
 pub struct SubscriptionOptionInfo {
     #[serde(rename = "id")]
-    id: Uuid,
+    pub id: Uuid,
     #[serde(rename = "title")]
-    title: String,
+    pub title: String,
     #[serde(rename = "description")]
-    description: String,
+    pub description: String,
 }
 
 #[test]
@@ -748,5 +748,5 @@ fn test_serde() {
   }
 "#;
 
-    let order: NewOrder = serde_json::from_str(JSON).unwrap();
+    let _order: NewOrder = serde_json::from_str(JSON).unwrap();
 }

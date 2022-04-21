@@ -1,16 +1,10 @@
-[package]
-name = "tokio-wix-backend"
-version = "0.1.0"
-edition = "2021"
+[workspace]
+members = ["server", "entity", "wix-models", "client"]
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
-[dependencies]
-axum = "0.5.1"
-serde = { version = "1.0.136", features = ["derive"] }
-serde_json = "1.0.79"
-time = { version = "0.3.9", features = ["serde", "parsing", "serde-well-known"] }
-tokio = { version = "1.17.0", features = ["macros", "rt-multi-thread"] }
-tracing = "0.1.34"
-tracing-subscriber = "0.3.11"
-uuid = { version = "0.8.2", features = ["serde", "v4"] }
+# Hi @everyone, today marks my last day in ABAG.
+# Since my joining in Dec 2020 I have seen this startup grow from a few people to 200+ where we are now. During my time here I have built 4 departments, gone through countless interviews, and shipped 4 products by myself and 3+ together with the awesome people in the departments. My knowledge has scaled exponentially both in the technical and leadership field. I want to once again thank the people in all departments. Together we have spent countless hours improving each other's web3 knowledge which we will benefit from in the future.
+# Besides technical leading, I have worked extensively on inter-department communication and information exchange. For example, we have set up standards for a design that are aligned with the frontend department to allow for faster implementation and therefore shipment. I have provided feedback and a bunch of ideas that were implemented by our artists in the design department. I also wanted to introduce PL standards to consolidate output or rather input for developers from different projects (unfortunately this was never prioritized). Last but not least, is the access management for ABAG and its projects such as companywide JumpCloud SSO, GitHub audit, etc. I have provided support to set up internal payment management (payments for providers).
+# There are three pillars that are by far the most important in my workspace: employee well-being, company management, and information and funds management transparency. Unfortunately, I was in a serious disagreement with the company's vision on all three of the mentioned pillars for a prolonged time with no change in sight (without me having the power to change things). Which is the main reason for my leaving.
+# That being said, I would like to give one big thank you to everyone who I have worked with. Thank you People and Operations for taking care of the employees as well as providing great numbers of talented candidates, big brains protocol people for coming up with smart contracts and substrate nodes, designers for creating designs that are a joy to implement, and many more.
+# If you want to stay in touch, don't hesitate to add me on telegram @developerpeter and drop a message.
+# Crypto is still small - we will see each other again :slightly_smiling_face:
