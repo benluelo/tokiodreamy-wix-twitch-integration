@@ -18,10 +18,7 @@ use axum::{
     Extension, Json, Router,
 };
 use entity::order::{Order, OrderWithJson};
-use futures::{
-    stream::{SplitSink, SplitStream},
-    StreamExt,
-};
+use futures::stream::{SplitSink, SplitStream};
 use serde::{Deserialize, Serialize};
 use sqlx::{postgres::PgPoolOptions, query, query_as, PgPool, Pool};
 use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
