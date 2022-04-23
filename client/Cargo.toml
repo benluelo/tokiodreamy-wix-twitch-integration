@@ -8,4 +8,6 @@ edition = "2021"
 [dependencies]
 bevy = { git = "https://github.com/bevyengine/bevy.git" }
 crossbeam = "0.8.1"
-tokio = { version = "1.17.0", features = ["macros"] }
+tokio = { version = "1.17.0", features = ["macros", "rt"] }
+server = { path = "../server" }
+models = { path = "../models" }

@@ -13,11 +13,11 @@ use axum::{
 };
 use entity::order::Order;
 
+use models::{wix::NewOrder, ClientMsg, ServerMsg};
 use serde::{Deserialize, Serialize};
 use sqlx::{postgres::PgPoolOptions, query, query_as, PgPool};
 use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
 use uuid::Uuid;
-use wix_models::NewOrder;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
@@ -49,7 +49,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 async fn new_order(
     ws_channel: Option<Extension<UnboundedSender<Uuid>>>,
     Extension(db): Extension<PgPool>,
-    Json(new_order): Json<wix_models::NewOrder>,
+    Json(new_order): Json<NewOrder>,
 ) -> impl IntoResponse {
     let timestamp = new_order._date_created.naive_utc().clone();
     let twitch_username = new_order
@@ -177,15 +177,4 @@ async fn handle_socket(db: PgPool, mut reciever: UnboundedReceiver<Uuid>, mut so
             return;
         }
     }
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub enum ClientMsg {
-    BreakCompleted { order_id: Uuid },
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub enum ServerMsg {
-    NewOrder(NewOrder),
-    BreakCompletedSuccess { order_id: Uuid },
 }

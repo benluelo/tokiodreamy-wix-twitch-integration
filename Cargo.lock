@@ -985,6 +985,8 @@ version = "0.1.0"
 dependencies = [
  "bevy",
  "crossbeam",
+ "models",
+ "server",
  "tokio",
 ]
 
@@ -2416,6 +2418,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "models"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "serde",
+ "serde_json",
+ "uuid",
+]
+
+[[package]]
 name = "naga"
 version = "0.8.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3171,6 +3183,7 @@ dependencies = [
  "dotenv",
  "entity",
  "futures",
+ "models",
  "serde",
  "serde_json",
  "sqlx",
@@ -3178,7 +3191,6 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "uuid",
- "wix-models",
 ]
 
 [[package]]
@@ -4206,16 +4218,6 @@ dependencies = [
  "web-sys",
  "winapi",
  "x11-dl",
-]
-
-[[package]]
-name = "wix-models"
-version = "0.1.0"
-dependencies = [
- "chrono",
- "serde",
- "serde_json",
- "uuid",
 ]
 
 [[package]]

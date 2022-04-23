@@ -10,24 +10,26 @@ use bevy::{
     },
     window::{CreateWindow, PresentMode, WindowId},
 };
-use crossbeam::channel::{bounded, Receiver, Sender};
+use crossbeam::channel::{bounded, Receiver, SendError, Sender};
+use models::{ClientMsg, ServerMsg};
 
 #[tokio::main]
-async fn runtime(sender: Sender<MessagesFromServer>, receiver: Receiver<MessagesToServer>) {
-
-}
+async fn runtime(sender: Sender<models::ServerMsg>, receiver: Receiver<models::ClientMsg>) {}
 
 /// This example creates a second window and draws a mesh from two different cameras, one in each window
 fn main() {
     App::new()
         // ClearColor must have 0 alpha, otherwise some color will bleed through
         .insert_resource(ClearColor(Color::NONE))
+        .add_event::<ClientMsg>()
+        .add_event::<ServerMsg>()
         .add_plugins(DefaultPlugins)
         .add_plugin(SecondWindowCameraPlugin)
         .add_startup_system(setup)
         .add_startup_system(create_new_window)
         .add_system(button_system)
         .add_system(read_stream)
+        .add_system(create_stream)
         .run();
 }
 
@@ -67,7 +69,7 @@ impl render_graph::Node for SecondWindowDriverNode {
     ) -> Result<(), NodeRunError> {
         if let Some(camera) = world.resource::<ActiveCamera<SecondWindowCamera>>().get() {
             graph.run_sub_graph(
-                core_pipeline::draw_3d_graph::NAME,
+                core_pipeline::draw_2d_graph::NAME,
                 vec![SlotValue::Entity(camera)],
             )?;
         }
@@ -82,7 +84,7 @@ fn extract_second_camera_phases(
 ) {
     if let Some(entity) = active.get() {
         commands.get_or_spawn(entity).insert_bundle((
-            RenderPhase::<Opaque3d>::default(),
+            RenderPhase::<>::default(),
             RenderPhase::<AlphaMask3d>::default(),
             RenderPhase::<Transparent3d>::default(),
         ));
@@ -143,22 +145,43 @@ fn button_system(
     }
 }
 
+/// Websocket Message -> Events
 #[derive(Deref)]
-struct StreamReceiver(Receiver<u32>);
+struct StreamReceiver(Receiver<ServerMsg>);
+
+/// Events -> Websocket Message
+#[derive(Deref)]
+struct StreamSender(Sender<ClientMsg>);
 
 // This system reads from the receiver and sends events to Bevy
-fn read_stream(receiver: ResMut<StreamReceiver>, mut events: EventWriter<()>) {
+fn read_stream(receiver: ResMut<StreamReceiver>, mut events: EventWriter<ServerMsg>) {
     for from_stream in receiver.try_iter() {
-        events.send(());
+        events.send(from_stream);
+    }
+}
+
+// This system reads from the events from Bevy and sends messages across the channel to the websocket handler
+fn create_stream(sender: ResMut<StreamSender>, mut events: EventReader<ClientMsg>) {
+    for event in events.iter() {
+        match sender.send(event.clone()) {
+            Ok(_) => {}
+            Err(SendError(why)) => {
+                println!("couldn't send message")
+                // todo: store it somehow for future sending
+            }
+        }
     }
 }
 
 fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.spawn_bundle(UiCameraBundle::default());
 
-    let (client_tx, client_rx) = bounded::<()>(10);
-    let (server_tx, server_rx) = bounded::<()>(10);
-    std::thread::spawn(move || runtime(client_tx, server_rx));
+    let (send_to_client, client_reciever) = bounded::<_>(10);
+    let (client_msg_sender, server_reciever) = bounded::<_>(10);
+    std::thread::spawn(move || runtime(send_to_client, server_reciever));
+    commands.insert_resource(StreamReceiver(client_reciever));
+    commands.insert_resource(StreamSender(client_msg_sender));
+    // commands.insert_resource(LoadedFont(asset_server.load("assets/fonts/FiraSans-Bold.ttf")));
 
     commands
         .spawn_bundle(ButtonBundle {
