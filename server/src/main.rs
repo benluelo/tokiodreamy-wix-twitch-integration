@@ -1,10 +1,4 @@
-use std::{
-    error::Error,
-    future::Future,
-    net::SocketAddr,
-    ops::ControlFlow,
-    sync::{mpsc, Arc},
-};
+use std::{error::Error, net::SocketAddr};
 
 use axum::{
     body::Body,
@@ -17,12 +11,13 @@ use axum::{
     routing::get,
     Extension, Json, Router,
 };
-use entity::order::{Order, OrderWithJson};
-use futures::stream::{SplitSink, SplitStream};
+use entity::order::Order;
+
 use serde::{Deserialize, Serialize};
-use sqlx::{postgres::PgPoolOptions, query, query_as, PgPool, Pool};
+use sqlx::{postgres::PgPoolOptions, query, query_as, PgPool};
 use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
 use uuid::Uuid;
+use wix_models::NewOrder;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
@@ -64,7 +59,8 @@ async fn new_order(
         .unwrap();
     let order_id = new_order._id;
     let json_value = serde_json::to_value(new_order).unwrap();
-    match query_as!(
+
+    if let Err(why) = query_as!(
         OrderWithJson,
         r#"
         INSERT INTO public.order (
@@ -84,12 +80,15 @@ async fn new_order(
     .execute(&db)
     .await
     {
-        Ok(_) => {}
-        Err(why) => {
-            tracing::error!("error inserting into the database: {}", why);
-            return StatusCode::OK;
-        }
+        tracing::error!("error inserting into the database: {}", why);
+        return StatusCode::OK;
     };
+
+    if let Some(Extension(tx)) = ws_channel {
+        if let Err(why) = tx.send(order_id) {
+            tracing::error!("error sending across stream: {}", why);
+        }
+    }
 
     StatusCode::OK
 }
@@ -187,5 +186,6 @@ pub enum ClientMsg {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum ServerMsg {
+    NewOrder(NewOrder),
     BreakCompletedSuccess { order_id: Uuid },
 }

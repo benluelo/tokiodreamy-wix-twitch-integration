@@ -6,4 +6,6 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-druid = { git = "https://github.com/linebender/druid.git" }
+bevy = { git = "https://github.com/bevyengine/bevy.git" }
+crossbeam = "0.8.1"
+tokio = { version = "1.17.0", features = ["macros"] }
