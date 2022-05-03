@@ -1,0 +1,19 @@
+[package]
+name = "iced-client"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+async-tungstenite = { version = "0.17.2", features = [
+    "tokio-rustls-webpki-roots",
+] }
+futures = "0.3.21"
+iced = { git = "https://github.com/iced-rs/iced", features = [
+    "tokio",
+    "debug",
+] }
+iced_futures = { git = "https://github.com/iced-rs/iced" }
+iced_native = { git = "https://github.com/iced-rs/iced" }
+tokio = { version = "1.18.0", features = ["time"] }
