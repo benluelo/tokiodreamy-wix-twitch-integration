@@ -1,33 +1,34 @@
 use std::{error::Error, net::SocketAddr, sync::Arc};
 
 use axum::{
-    extract::{
-        ws::{Message, WebSocket},
-        WebSocketUpgrade,
-    },
+    extract::Path,
     http::StatusCode,
-    response::IntoResponse,
+    response::{
+        sse::{Event, KeepAlive},
+        IntoResponse, Sse,
+    },
     routing::{get, post},
     Extension, Json, Router,
 };
 
+use futures::{
+    channel::mpsc::{unbounded, UnboundedSender},
+    Stream, StreamExt,
+};
 use models::{
     wix::{NewOrder, OrderNumber},
-    ClientMsg, OrderWithJson, ServerMsg,
+    OrderWithJson, OrderWithOrder,
 };
 use parking_lot::RwLock;
-use sqlx::{postgres::PgPoolOptions, query, query_as, PgPool};
-use tokio::{
-    select,
-    sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
+use sqlx::{
+    postgres::{PgPoolOptions, PgQueryResult},
+    query, query_as, PgPool,
 };
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
     tracing_subscriber::fmt::init();
     dotenv::dotenv().unwrap();
-
-    let ws_connection = Arc::new(RwLock::new(None));
 
     let pool = PgPoolOptions::new()
         .max_connections(3)
@@ -36,21 +37,13 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let app = Router::new()
         .route("/all_orders", get(all_orders))
-        .route(
-            "/new_order",
-            post({
-                let ws = Arc::clone(&ws_connection);
-                move |db, json| new_order(ws, db, json)
-            }),
-        )
-        .route(
-            "/ws",
-            get({
-                let channel_to_websocket = Arc::clone(&ws_connection);
-                move |db, ws_upgrade| ws_handler(channel_to_websocket, db, ws_upgrade)
-            }),
-        )
-        .layer(Extension(pool));
+        .route("/order_completed/:order_number", get(order_completed))
+        .route("/sse", get(sse_handler))
+        .route("/new_order", post(new_order))
+        .layer(Extension(pool))
+        .layer(Extension(Arc::new(RwLock::<
+            Option<UnboundedSender<OrderNumber>>,
+        >::new(None))));
 
     // run our app with hyper
     // `axum::Server` is a re-export of `hyper::Server`
@@ -64,9 +57,50 @@ async fn main() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-#[tracing::instrument(skip(channel_to_websocket, db))]
+async fn sse_handler(
+    Extension(channel_to_websocket): Extension<Arc<RwLock<Option<UnboundedSender<OrderNumber>>>>>,
+    Extension(db): Extension<PgPool>,
+    // TODO: Better error type
+) -> Sse<impl Stream<Item = Result<Event, String>>> {
+    let (new_order_notification_sender, new_order_notification_receiver) =
+        unbounded::<OrderNumber>();
+    {
+        let mut write_lock = channel_to_websocket.write();
+        *write_lock = Some(new_order_notification_sender);
+    }
+
+    let strm = new_order_notification_receiver.then(move |new_order_id| {
+        let db = db.clone();
+        async move {
+            query_as!(
+                OrderWithJson,
+                r#"
+                SELECT
+                    twitch_username,
+                    order_id as "order_id: OrderNumber",
+                    json
+                FROM public.order
+                WHERE order_id = $1::INT
+                "#,
+                new_order_id as OrderNumber,
+            )
+            .fetch_one(&db.clone())
+            .await
+            .map(Into::<OrderWithOrder>::into)
+            .map(|ok| Event::default().json_data(ok).unwrap())
+            .map_err(|err| {
+                tracing::error!("error querying the database: {}", err);
+                err.to_string()
+            })
+        }
+    });
+
+    Sse::new(strm).keep_alive(KeepAlive::default())
+}
+
+#[tracing::instrument(skip_all)]
 async fn new_order(
-    channel_to_websocket: Arc<RwLock<Option<UnboundedSender<OrderNumber>>>>,
+    Extension(channel_to_websocket): Extension<Arc<RwLock<Option<UnboundedSender<OrderNumber>>>>>,
     Extension(db): Extension<PgPool>,
     Json(new_order): Json<NewOrder>,
 ) -> impl IntoResponse {
@@ -78,7 +112,7 @@ async fn new_order(
     let json_value = serde_json::to_value(new_order)
         .expect("Object was deserialized from JSON, should not fail.");
 
-    if let Err(why) = query_as!(
+    match query_as!(
         OrderWithJson,
         r#"
         INSERT INTO public.order (
@@ -96,32 +130,40 @@ async fn new_order(
     .execute(&db)
     .await
     {
-        tracing::error!("error inserting into the database: {}", why);
-        StatusCode::INTERNAL_SERVER_ERROR
-    } else {
-        tracing::info!("order #{} saved successfully", order_number);
-
-        let notifier = channel_to_websocket.read_recursive();
-
-        if let Some(tx) = &*notifier {
-            tracing::info!(
-                "client is connected, attempting to notify about order #{}",
-                order_number
-            );
-            if let Err(why) = tx.send(order_number) {
-                tracing::error!("error sending across stream: {}", why);
-            }
-        } else {
-            tracing::info!(
-                "client not connected, order #{} added to queue",
-                order_number
-            );
+        Err(why) => {
+            tracing::error!("error inserting into the database: {}", why);
+            StatusCode::INTERNAL_SERVER_ERROR
         }
+        Ok(ok) => {
+            if ok.rows_affected() == 0 {
+                tracing::info!("duplicate order received (#{})", order_number);
+            } else {
+                tracing::info!("order #{} saved successfully", order_number);
 
-        StatusCode::OK
+                let notifier = channel_to_websocket.read_recursive();
+
+                if let Some(tx) = &*notifier {
+                    tracing::info!(
+                        "client is connected, attempting to notify about order #{}",
+                        order_number
+                    );
+                    if let Err(why) = tx.unbounded_send(order_number) {
+                        tracing::error!("error sending across stream: {}", why);
+                    }
+                } else {
+                    tracing::info!(
+                        "client not connected, order #{} added to queue",
+                        order_number
+                    );
+                }
+            }
+
+            StatusCode::OK
+        }
     }
 }
 
+#[tracing::instrument(skip_all)]
 async fn all_orders(Extension(db): Extension<PgPool>) -> impl IntoResponse {
     match query_as!(
         OrderWithJson,
@@ -136,7 +178,13 @@ async fn all_orders(Extension(db): Extension<PgPool>) -> impl IntoResponse {
     .fetch_all(&db)
     .await
     {
-        Ok(all_orders) => Json(all_orders).into_response(),
+        Ok(all_orders) => Json(
+            all_orders
+                .into_iter()
+                .map(Into::<OrderWithOrder>::into)
+                .collect::<Vec<_>>(),
+        )
+        .into_response(),
         Err(why) => {
             tracing::error!("error selecting from the database: {}", why);
             StatusCode::INTERNAL_SERVER_ERROR.into_response()
@@ -145,120 +193,31 @@ async fn all_orders(Extension(db): Extension<PgPool>) -> impl IntoResponse {
 }
 
 #[tracing::instrument(skip_all)]
-async fn ws_handler(
-    channel_to_websocket: Arc<RwLock<Option<UnboundedSender<OrderNumber>>>>,
+async fn order_completed(
+    Path(order_number): Path<OrderNumber>,
     Extension(db): Extension<PgPool>,
-    ws_upgrade: WebSocketUpgrade,
 ) -> impl IntoResponse {
-    ws_upgrade.on_upgrade(move |socket| {
-        let (sender, reciever) = unbounded_channel::<OrderNumber>();
-        {
-            let mut write_lock = channel_to_websocket.write();
-            *write_lock = Some(sender);
+    match query!(
+        r#"
+        DELETE FROM public.order
+        WHERE order_id = $1::INT
+        "#,
+        order_number as OrderNumber,
+    )
+    .execute(&db)
+    .await
+    {
+        Ok(_) => {
+            tracing::info!("successfully deleted order #{}", &order_number);
+            StatusCode::OK.into_response()
         }
-        let db = db.clone();
-        handle_socket(db, reciever, socket /* channel_to_websocket */)
-    })
-}
-
-#[tracing::instrument(skip_all)]
-async fn handle_socket(
-    db: PgPool,
-    mut new_order_notification_receiver: UnboundedReceiver<OrderNumber>,
-    mut websocket: WebSocket,
-) {
-    loop {
-        select! {
-            Some(new_order_id) = new_order_notification_receiver.recv() => {
-                match query_as!(
-                    OrderWithJson,
-                    r#"
-                    SELECT
-                        twitch_username,
-                        order_id as "order_id: OrderNumber",
-                        json
-                    FROM public.order
-                    WHERE order_id = $1::INT
-                    "#,
-                    new_order_id as OrderNumber,
-                )
-                .fetch_one(&db.clone())
-                .await
-                {
-                    Ok(new_order) => {
-                        if let Err(why) = websocket.send(Message::Text(
-                            serde_json::to_string(&ServerMsg::NewOrder{new_order: new_order}).expect("serializing should not fail"),
-                        )).await {
-                            tracing::error!("error sending message: {}", why)
-                        }
-                    }
-                    Err(why) => {
-                        tracing::error!("error querying the database: {}", why);
-                    }
-                }
-            },
-
-            Some(msg) = websocket.recv() => {
-                if let Ok(msg) = msg {
-                match msg {
-                    Message::Text(json) => match serde_json::from_str::<ClientMsg>(&json) {
-                        Ok(client_msg) => match client_msg {
-                            ClientMsg::BreakCompleted { order_number } => {
-                                let server_msg = match query!(
-                                    r#"
-                                    DELETE FROM public.order
-                                    WHERE order_id = $1::INT
-                                    "#,
-                                    order_number as OrderNumber,
-                                )
-                                .execute(&db)
-                                .await
-                                {
-                                    Ok(_) => {
-                                        tracing::info!("successfully deleted order #{}", &order_number);
-                                        ServerMsg::BreakCompletedSuccess { order_number }
-                                    }
-                                    Err(why) => {
-                                        tracing::error!("error deleting from the database: {}", why);
-                                        ServerMsg::BreakCompletedError { order_number }
-                                    }
-                                };
-
-                                let message_to_send = Message::Text(
-                                    serde_json::to_string(&server_msg)
-                                        .expect("serializing should not fail"),
-                                );
-
-                                if let Err(why) = websocket.send(message_to_send).await {
-                                    tracing::error!("error sending message: {}", why)
-                                }
-
-                                tracing::info!(
-                                    "successfully sent websocket message about order #{}",
-                                    &order_number
-                                );
-                            }
-                        },
-                        Err(why) => tracing::error!("error deserializing client message: {}", why),
-                    },
-                    Message::Close(_) => {
-                        // client disconnected
-                        if let Err(why) = websocket.close().await {
-                            tracing::error!("error gracefully closing websocket connection: {}", why);
-                        };
-                        return;
-                    },
-                    _ => {}
-                }
-                } else {
-                    // client disconnected
-                    if let Err(why) = websocket.close().await {
-                        tracing::error!("error gracefully closing websocket connection: {}", why);
-                    };
-                    return;
-                }
-            },
-            else => continue,
+        Err(why) => {
+            tracing::error!("error deleting from the database: {}", &why);
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(format!("error deleting from the database: {}", why)),
+            )
+                .into_response()
         }
     }
 }

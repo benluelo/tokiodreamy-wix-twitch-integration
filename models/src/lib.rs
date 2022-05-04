@@ -21,7 +21,7 @@ pub mod wix {
         }
     }
 
-    #[derive(Debug, Deserialize, Serialize, Clone)]
+    #[derive(Debug, Deserialize, Serialize, Clone, PartialEq, Eq)]
     pub struct NewOrder {
         #[serde(rename = "buyerNote")]
         pub buyer_note: Option<String>,
@@ -57,13 +57,13 @@ pub mod wix {
         }
     }
 
-    #[derive(Debug, Deserialize, Serialize, Clone)]
+    #[derive(Debug, Deserialize, Serialize, Clone, PartialEq, Eq)]
     pub enum TwitchUsernameError {
         IncorrectTitleForCustomField(String),
         CustomFieldNotPresent,
     }
 
-    #[derive(Debug, Deserialize, Serialize, Clone)]
+    #[derive(Debug, Deserialize, Serialize, Clone, PartialEq, Eq)]
     pub struct OrderLineItem {
         /// REVIEW: Necessary?
         #[serde(rename = "index")]
@@ -91,7 +91,7 @@ pub mod wix {
     }
 
     /// I'm not sure what this is
-    #[derive(Debug, Deserialize, Serialize, Clone)]
+    #[derive(Debug, Deserialize, Serialize, Clone, PartialEq, Eq)]
     pub struct CustomTextField {
         #[serde(rename = "title")]
         pub title: String,
@@ -108,7 +108,7 @@ pub mod wix {
     ///     "selection": "Yes"
     /// }
     /// ```
-    #[derive(Debug, Deserialize, Serialize, Clone)]
+    #[derive(Debug, Deserialize, Serialize, Clone, PartialEq, Eq)]
     pub struct OrderLineItemOption {
         #[serde(rename = "option")]
         pub option: String,
@@ -118,7 +118,7 @@ pub mod wix {
     }
 
     /// https://static.wixstatic.com/media/{id} for the image file
-    #[derive(Debug, Deserialize, Serialize, Clone)]
+    #[derive(Debug, Deserialize, Serialize, Clone, PartialEq, Eq)]
     pub struct OrderMediaItem {
         #[serde(rename = "altText")]
         pub alt_text: Option<String>,
@@ -130,7 +130,7 @@ pub mod wix {
         pub src: String,
     }
 
-    #[derive(Debug, Deserialize, Serialize, Clone)]
+    #[derive(Debug, Deserialize, Serialize, Clone, PartialEq, Eq)]
     pub struct CustomField {
         #[serde(rename = "value")]
         pub value: String,
@@ -306,12 +306,12 @@ pub mod wix {
 }
 
 /// Messages sent from the client to the main server.
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
 pub enum ClientMsg {
     BreakCompleted { order_number: OrderNumber },
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
 pub enum ServerMsg {
     NewOrder { new_order: OrderWithJson },
     BreakCompletedSuccess { order_number: OrderNumber },
@@ -319,15 +319,32 @@ pub enum ServerMsg {
 }
 use serde_json::Value;
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Order {
     pub twitch_username: String,
     pub order_id: OrderNumber,
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct OrderWithJson {
     pub twitch_username: String,
     pub order_id: OrderNumber,
     pub json: Value,
+}
+
+impl From<OrderWithJson> for OrderWithOrder {
+    fn from(o: OrderWithJson) -> Self {
+        OrderWithOrder {
+            twitch_username: o.twitch_username,
+            order_id: o.order_id,
+            order: serde_json::from_value(o.json).unwrap(),
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct OrderWithOrder {
+    pub twitch_username: String,
+    pub order_id: OrderNumber,
+    pub order: NewOrder,
 }
