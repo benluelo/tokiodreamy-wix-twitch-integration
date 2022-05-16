@@ -6,12 +6,12 @@
 			"command": "run",
 			"args": [
 				"-p",
-				"client"
+				"iced-client"
 			],
 			"problemMatcher": [
 				"$rustc"
 			],
-			"label": "rust: cargo run"
+			"label": "run client"
 		}
 	]
 }

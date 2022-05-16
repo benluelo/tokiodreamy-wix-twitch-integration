@@ -10,20 +10,16 @@ use axum::{
     routing::{get, post},
     Extension, Json, Router,
 };
-
 use futures::{
     channel::mpsc::{unbounded, UnboundedSender},
     Stream, StreamExt,
 };
 use models::{
     wix::{NewOrder, OrderNumber},
-    OrderWithJson, OrderWithOrder,
+    OrderWithJson, OrderWithOrder, SseEvent,
 };
 use parking_lot::RwLock;
-use sqlx::{
-    postgres::{PgPoolOptions, PgQueryResult},
-    query, query_as, PgPool,
-};
+use sqlx::{postgres::PgPoolOptions, query, query_as, PgPool};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
@@ -87,6 +83,7 @@ async fn sse_handler(
             .fetch_one(&db.clone())
             .await
             .map(Into::<OrderWithOrder>::into)
+            .map(SseEvent::NewOrder)
             .map(|ok| Event::default().json_data(ok).unwrap())
             .map_err(|err| {
                 tracing::error!("error querying the database: {}", err);

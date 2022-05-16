@@ -1,8 +1,4 @@
 [workspace]
-members = [
-    "server",
-    "models",
-    "iced-client",
-]
+members = ["server", "models", "dashboard", "widget"]
 
 resolver = "2"

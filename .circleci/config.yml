@@ -2,6 +2,9 @@
 # See: https://circleci.com/docs/2.0/configuration-reference
 version: 2.1
 
+orbs:
+  win: circleci/windows@4.1
+
 # Define a job to be invoked later in a workflow.
 # See: https://circleci.com/docs/2.0/configuration-reference/#jobs
 jobs:
@@ -26,6 +29,27 @@ jobs:
       - run:
           name: "build server"
           command: "cargo build --release"
+
+  build-win: # name of your job
+    shell: bash.exe
+    executor:
+      name: win/default # executor type
+      size: "medium" # resource class, can be "medium", "large", "xlarge", "2xlarge", defaults to "medium" if not specified
+
+    steps:
+      - checkout
+      - run:
+          name: install
+          command: "curl.exe --output rustup-init.exe --url https://static.rust-lang.org/rustup/dist/x86_64-pc-windows-msvc/rustup-init.exe"
+      - run:
+          name: install
+          command: "rustup-init.exe"
+      - run:
+          name: "build dashboard"
+          command: "cargo build --release -p dashboard"
+      - run:
+          name: "build widget"
+          command: "cargo build --release -p widget"
 
 # Invoke jobs via workflows
 # See: https://circleci.com/docs/2.0/configuration-reference/#workflows

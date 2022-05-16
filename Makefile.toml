@@ -1,0 +1,46 @@
+[env]
+CARGO_MAKE_EXTEND_WORKSPACE_MAKEFILE = true
+
+[tasks.style]
+condition = { platforms = ["windows", "linux"], channels = ["nightly"] }
+install_crate = "rustfmt"
+command = "cargo"
+args = ["fmt", "--all"]
+
+[tasks.clean]
+command = "cargo"
+args = ["clean"]
+
+[tasks.build-dashboard]
+command = "cargo"
+args = ["build", "-p", "dashboard"]
+
+[tasks.build-widget]
+command = "cargo"
+args = ["build", "-p", "widget"]
+
+[tasks.build-app]
+dependencies = ["build-dashboard", "build-widget"]
+script_runner = "@duckscript"
+script = '''
+echo ${CARGO_MAKE_WORKSPACE_WORKING_DIRECTORY}
+rm ${CARGO_MAKE_WORKSPACE_WORKING_DIRECTORY}/app/dashboard
+rm ${CARGO_MAKE_WORKSPACE_WORKING_DIRECTORY}/app/widget
+mkdir ${CARGO_MAKE_WORKSPACE_WORKING_DIRECTORY}/app
+moved = mv ${CARGO_MAKE_WORKSPACE_WORKING_DIRECTORY}/target/debug/dashboard ${CARGO_MAKE_WORKSPACE_WORKING_DIRECTORY}/app/
+chmod 777 ${CARGO_MAKE_WORKSPACE_WORKING_DIRECTORY}/app/dashboard
+moved = mv ${CARGO_MAKE_WORKSPACE_WORKING_DIRECTORY}/target/debug/widget ${CARGO_MAKE_WORKSPACE_WORKING_DIRECTORY}/app/
+chmod 777 ${CARGO_MAKE_WORKSPACE_WORKING_DIRECTORY}/app/widget
+'''
+
+[tasks.run-app]
+dependencies = ["build-app"]
+command = "app/dashboard"
+
+[tasks.test]
+command = "cargo"
+args = ["test", "--workspace"]
+dependencies = ["clean"]
+
+[tasks.my-flow]
+dependencies = ["format", "build", "test"]
