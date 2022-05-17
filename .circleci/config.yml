@@ -42,12 +42,9 @@ jobs:
           name: install
           command: |
             $url = "https://static.rust-lang.org/rustup/dist/x86_64-pc-windows-msvc/rustup-init.exe"
-            $outpath = "rustup-init.exe"
+            $outpath = "$pwd\rustup-init.exe"
             Invoke-WebRequest -Uri $url -OutFile $outpath
-            Start-Process -Filepath "rustup-init.exe" -ArgumentList @("-y")
-      - run:
-          name: install
-          command: "rustup-init.exe"
+            Start-Process -Filepath $outpath -ArgumentList @("-y")
       - run:
           name: "build dashboard"
           command: "cargo build --release -p dashboard"
