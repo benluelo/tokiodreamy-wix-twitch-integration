@@ -45,6 +45,7 @@ jobs:
             $outpath = "$pwd\rustup-init.exe"
             Invoke-WebRequest -Uri $url -OutFile $outpath
             Start-Process -Filepath $outpath -ArgumentList @("-y")
+            ls .\.cargo\bin
       - run:
           name: "build dashboard"
           command: "cargo build --release -p dashboard"
