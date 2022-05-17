@@ -42,7 +42,7 @@ jobs:
           name: install
           command: |
             $url = "https://static.rust-lang.org/rustup/dist/x86_64-pc-windows-msvc/rustup-init.exe"
-            $outpath = C:\Users\circleci\project\rustup-init.exe"
+            $outpath = "C:\Users\circleci\project\rustup-init.exe"
             Invoke-WebRequest -Uri $url -OutFile $outpath
             C:\Users\circleci\project\rustup-init.exe -y
             ls C:\Users\circleci\.cargo\bin
