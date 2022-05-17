@@ -52,6 +52,7 @@ jobs:
           name: "build dashboard"
           command: |
             ~\.cargo\bin\cargo.exe build --release -p dashboard
+            ls .
       - run:
           environment:
             CARGO_NET_GIT_FETCH_WITH_CLI: "true"
