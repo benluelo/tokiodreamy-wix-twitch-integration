@@ -65,9 +65,11 @@ jobs:
       - store_artifacts:
           path: |
             .\target\release\dashboard.exe
-      - store_artifacts:
-          path: |
-            .\target\release\widget.exe
+          destination: "dashboard.exe"
+      # - store_artifacts:
+      #     path: |
+      #       .\target\release\widget.exe
+      #     destination: "widget.exe"
 
 # Invoke jobs via workflows
 # See: https://circleci.com/docs/2.0/configuration-reference/#workflows
