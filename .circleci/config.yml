@@ -40,7 +40,11 @@ jobs:
       - checkout
       - run:
           name: install
-          command: "curl.exe --output rustup-init.exe --url https://static.rust-lang.org/rustup/dist/x86_64-pc-windows-msvc/rustup-init.exe"
+          command: |
+            $url = "https://static.rust-lang.org/rustup/dist/x86_64-pc-windows-msvc/rustup-init.exe"
+            $outpath = "$PSScriptRoot/rustup-init.exe"
+            Invoke-WebRequest -Uri $url -OutFile $outpath
+            Start-Process -Filepath "$PSScriptRoot/rustup-init.exe"
       - run:
           name: install
           command: "rustup-init.exe"
@@ -54,11 +58,11 @@ jobs:
 # Invoke jobs via workflows
 # See: https://circleci.com/docs/2.0/configuration-reference/#workflows
 workflows:
-  test-workflow:
-    jobs:
-      - test
+  # test-workflow:
+  #   jobs:
+  #     - test
 
   build-workflow:
     jobs:
-      - build
+      # - build
       - build-win
