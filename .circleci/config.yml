@@ -55,13 +55,12 @@ jobs:
             ls .
             ls .\target
             ls .\target\release
-      - run:
-          environment:
-            CARGO_NET_GIT_FETCH_WITH_CLI: "true"
-          name: "build widget"
-          command: |
-            ~\.cargo\bin\cargo.exe build --release -p widget
-
+      # - run:
+      #     environment:
+      #       CARGO_NET_GIT_FETCH_WITH_CLI: "true"
+      #     name: "build widget"
+      #     command: |
+      #       ~\.cargo\bin\cargo.exe build --release -p widget
       - store_artifacts:
           path: |
             .\target\release\dashboard.exe
