@@ -59,6 +59,13 @@ jobs:
           command: |
             ~\.cargo\bin\cargo.exe build --release -p widget
 
+      - store_artifacts:
+          path: |
+            .\target\release\dashboard.exe
+      - store_artifacts:
+          path: |
+            .\target\release\widget.exe
+
 # Invoke jobs via workflows
 # See: https://circleci.com/docs/2.0/configuration-reference/#workflows
 workflows:
