@@ -8,7 +8,7 @@ edition = "2021"
 [dependencies]
 futures = "0.3.21"
 iced = { git = "https://github.com/iced-rs/iced", features = [
-    # "glow", svg doesn't work with glow backend
+    "glow", # NOTE: svg doesn't work with glow backend
     "tokio",
     "debug",
     "pure",

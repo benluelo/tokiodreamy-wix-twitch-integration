@@ -41,6 +41,10 @@ impl Breaks {
     pub fn idx_is_first(&self, idx: usize) -> bool {
         idx == 0
     }
+
+    pub fn is_empty(&self) -> bool {
+        self.ordered_breaks.is_empty()
+    }
 }
 
 impl FromIterator<OrderWithOrder> for Breaks {

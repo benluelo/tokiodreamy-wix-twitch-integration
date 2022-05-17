@@ -145,6 +145,13 @@ impl Application for Dashboard {
     }
 
     fn view(&self) -> Element<InnerAppMessage> {
+        if self.breaks.is_empty() {
+            return container(text("No breaks :(").size(24).color(PRIMARY_COLOR))
+                .center_x()
+                // .align_items(iced::Alignment::Center)
+                .padding(10)
+                .into();
+        }
         // dbg!(self.break_order.len());
         scrollable(
             container(
@@ -165,41 +172,59 @@ impl Application for Dashboard {
                                         .push(
                                             // username and order number
                                             row()
-                                                .push(text(&order.twitch_username).color(PRIMARY_TEXT_COLOR))
+                                                .push(
+                                                    text(&order.twitch_username)
+                                                        .color(PRIMARY_TEXT_COLOR),
+                                                )
                                                 .push(horizontal_space(Length::Fill))
-                                                .push(text(order.order_id.to_string()).color(PRIMARY_TEXT_COLOR)),
+                                                .push(
+                                                    text(order.order_id.to_string())
+                                                        .color(PRIMARY_TEXT_COLOR),
+                                                ),
                                         )
                                         .push(
                                             // items
-                                            container(build_line_items(&order.order.line_items, idx))
-                                                .width(Length::Fill)
-                                                .height(Length::Shrink)
-                                                .style(ContainerStyle::transparent().bordered(true).line_color(PRIMARY_LIGHT_COLOR)),
+                                            container(build_line_items(
+                                                &order.order.line_items,
+                                                idx,
+                                            ))
+                                            .width(Length::Fill)
+                                            .height(Length::Shrink)
+                                            .style(
+                                                ContainerStyle::transparent()
+                                                    .bordered(true)
+                                                    .line_color(PRIMARY_LIGHT_COLOR),
+                                            ),
                                         )
                                         .push(
                                             row()
                                                 .spacing(5)
                                                 .push(horizontal_space(Length::Fill))
                                                 .push({
-                                                    let mut btn = button(Svg::from_path("/home/benluelo/personal-projects/tokio-wix-backend/dashboard/assets/caret-up-fill.svg"))
+                                                    let mut btn = button(text("▲"))
                                                         .style(ButtonStyle::primary_light());
                                                     if !self.breaks.idx_is_first(idx) {
-                                                        btn = btn.on_press(InnerAppMessage::MoveUp(idx))
+                                                        btn = btn
+                                                            .on_press(InnerAppMessage::MoveUp(idx))
                                                     }
                                                     btn
                                                 })
                                                 .push({
-                                                    let mut btn = button(Svg::from_path("/home/benluelo/personal-projects/tokio-wix-backend/dashboard/assets/caret-down-fill.svg"))
+                                                    let mut btn = button(text("▼"))
                                                         .style(ButtonStyle::primary_light());
                                                     if !self.breaks.idx_is_last(idx) {
-                                                        btn = btn.on_press(InnerAppMessage::MoveDown(idx))
+                                                        btn = btn.on_press(
+                                                            InnerAppMessage::MoveDown(idx),
+                                                        )
                                                     }
                                                     btn
-                                                }
-                                                    )
+                                                })
                                                 .push(
                                                     button(text("Completed"))
-                                                        .style(ButtonStyle::secondary()).on_press(InnerAppMessage::BreakCompleted(idx)),
+                                                        .style(ButtonStyle::secondary())
+                                                        .on_press(InnerAppMessage::BreakCompleted(
+                                                            idx,
+                                                        )),
                                                 ),
                                         ),
                                 )
@@ -211,7 +236,11 @@ impl Application for Dashboard {
                                     bottom: 5,
                                     left: 5,
                                 })
-                                .style(ContainerStyle::primary().bordered(true).line_color(PRIMARY_LIGHT_COLOR)),
+                                .style(
+                                    ContainerStyle::primary()
+                                        .bordered(true)
+                                        .line_color(PRIMARY_LIGHT_COLOR),
+                                ),
                             )
                             // .push(horizontal_rule(2).style(RuleStyle::primary_light()))
                         },
