@@ -47,11 +47,17 @@ jobs:
             .\rustup-init.exe -y
             ls ~\.cargo\bin
       - run:
+          environment:
+            CARGO_NET_GIT_FETCH_WITH_CLI: "true"
           name: "build dashboard"
-          command: "~\\.cargo\\bin\\cargo.exe build --release -p dashboard"
+          command: |
+            ~\.cargo\bin\cargo.exe build --release -p dashboard
       - run:
+          environment:
+            CARGO_NET_GIT_FETCH_WITH_CLI: "true"
           name: "build widget"
-          command: "~\\.cargo\\bin\\cargo.exe build --release -p widget"
+          command: |
+            ~\.cargo\bin\cargo.exe build --release -p widget
 
 # Invoke jobs via workflows
 # See: https://circleci.com/docs/2.0/configuration-reference/#workflows
