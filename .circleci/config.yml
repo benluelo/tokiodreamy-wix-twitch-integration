@@ -53,6 +53,8 @@ jobs:
           command: |
             ~\.cargo\bin\cargo.exe build --release -p dashboard
             ls .
+            ls .\target
+            ls .\target\release
       - run:
           environment:
             CARGO_NET_GIT_FETCH_WITH_CLI: "true"
