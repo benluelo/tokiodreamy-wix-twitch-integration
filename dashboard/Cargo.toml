@@ -8,13 +8,11 @@ edition = "2021"
 [dependencies]
 futures = "0.3.21"
 iced = { git = "https://github.com/iced-rs/iced", features = [
-    "glow", # NOTE: svg doesn't work with glow backend
+    "glow",  # NOTE: svg doesn't work with glow backend
     "tokio",
     "debug",
     "pure",
-    "palette",
-    "svg",
-] }
+], default-features = false }
 crossbeam-channel = "0.5.4"
 iced_pure = { git = "https://github.com/iced-rs/iced" }
 iced_futures = { git = "https://github.com/iced-rs/iced" }
