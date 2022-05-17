@@ -55,7 +55,7 @@ jobs:
             ls .
             ls .\target
             ls .\target\release
-            # mv .\target\release\dashboard.exe dashboard.exe 
+          # mv .\target\release\dashboard.exe dashboard.exe 
       # - run:
       #     environment:
       #       CARGO_NET_GIT_FETCH_WITH_CLI: "true"
