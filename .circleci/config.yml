@@ -64,7 +64,7 @@ jobs:
       #       ~\.cargo\bin\cargo.exe build --release -p widget
       - store_artifacts:
           path: |
-            C:\Users\circleci\project\dashboard.exe
+            C:\Users\circleci\project\target\release\dashboard.exe
           destination: dashboard.exe
       # - store_artifacts:
       #     path: |
