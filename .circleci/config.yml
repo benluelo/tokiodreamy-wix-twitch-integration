@@ -45,13 +45,13 @@ jobs:
             $outpath = "$pwd\rustup-init.exe"
             Invoke-WebRequest -Uri $url -OutFile $outpath
             Start-Process -Filepath $outpath -ArgumentList @("-y")
-            ls .\.cargo\bin
+            ls ~\.cargo\bin
       - run:
           name: "build dashboard"
-          command: "cargo build --release -p dashboard"
+          command: "~\\.cargo\\bin\\cargo.exe build --release -p dashboard"
       - run:
           name: "build widget"
-          command: "cargo build --release -p widget"
+          command: "~\\.cargo\\bin\\cargo.exe build --release -p widget"
 
 # Invoke jobs via workflows
 # See: https://circleci.com/docs/2.0/configuration-reference/#workflows
