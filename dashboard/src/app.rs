@@ -1,8 +1,5 @@
-use crossbeam_channel::Sender;
-use serde::{Deserialize, Serialize};
-// use futures::executor::block_on;
 use iced::pure::{
-    button, column, container, horizontal_space, row, scrollable, text, widget::svg::Svg,
+    button, column, container, horizontal_space, row, scrollable, text,
     Application, Element,
 };
 use iced::pure::{horizontal_rule, tooltip};
@@ -12,7 +9,7 @@ use iced::{
 };
 use iced_native::subscription::Subscription;
 use models::wix::OrderLineItem;
-use models::{Breaks, OrderWithOrder, SseEvent};
+use models::{Breaks, SseEvent};
 use tokio::runtime::Handle;
 use tokio::sync::watch;
 
