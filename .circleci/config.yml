@@ -81,7 +81,7 @@ workflows:
     when:
       matches:
         pattern: |
-          ^server-v\d+.\d+.\d+$
+          ^server-v\d+\.\d+\.\d+$
         value: << pipeline.git.tag >>
     jobs:
       - build-and-deploy-server
