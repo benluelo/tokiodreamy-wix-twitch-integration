@@ -4,7 +4,7 @@ SSH_KEY="LS0tLS1CRUdJTiBSU0EgUFJJVkFURSBLRVktLS0tLQpNSUlFcEFJQkFBS0NBUUVBdmV3emh
 
 # write the private key to a file (env var is base64 encoded with no line breaks (thanks circleci))
 echo $SSH_KEY | base64 -d >key.pem
-sudo chmod 600 key.pem
+chmod 600 key.pem
 
 # copy built server binary to the ec2 instance
 scp -o StrictHostKeyChecking=no -i key.pem target/release/server ubuntu@ec2-18-212-208-3.compute-1.amazonaws.com:/home/ubuntu/tokiodreamy-wix-twitch-integration-server
