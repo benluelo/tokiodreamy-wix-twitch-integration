@@ -1,4 +1,4 @@
-use std::{error::Error, net::SocketAddr, sync::Arc};
+use std::{error::Error, net::SocketAddr, path::PathBuf, sync::Arc};
 
 use axum::{
     extract::Path,
@@ -10,6 +10,7 @@ use axum::{
     routing::{get, post},
     Extension, Json, Router,
 };
+use clap::Parser;
 use futures::{
     channel::mpsc::{unbounded, UnboundedSender},
     Stream, StreamExt,
@@ -21,10 +22,19 @@ use models::{
 use parking_lot::RwLock;
 use sqlx::{postgres::PgPoolOptions, query, query_as, PgPool};
 
+#[derive(Debug, clap::Parser)]
+struct Args {
+    /// Path to the dotenv file containing the required environment variables.
+    #[clap(long)]
+    dotenv_file_path: PathBuf,
+}
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
+    let args = Args::parse();
+
     tracing_subscriber::fmt::init();
-    dotenv::dotenv().unwrap();
+    dotenv::from_path(args.dotenv_file_path).unwrap();
 
     let pool = PgPoolOptions::new()
         .max_connections(3)
@@ -43,7 +53,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     // run our app with hyper
     // `axum::Server` is a re-export of `hyper::Server`
-    let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
+    let addr = SocketAddr::from(([0, 0, 0, 0], 3000));
     tracing::debug!("listening on {}", addr);
     axum::Server::bind(&addr)
         .serve(app.into_make_service())

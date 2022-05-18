@@ -16,14 +16,14 @@ pub fn connect() -> Subscription<Event> {
         |state| async move {
             match state {
                 SubscriptionState::NotConnected => {
-                    let event_source = EventSource::get("http://localhost:3000/sse");
+                    let event_source = EventSource::get("http://18.212.208.3:3000/sse");
 
                     let (sender, receiver) = channel(100);
 
                     let client = Client::new();
 
                     let all_orders = client
-                        .get("http://localhost:3000/all_orders")
+                        .get("http://18.212.208.3:3000/all_orders")
                         .send()
                         .await
                         .unwrap()
@@ -121,7 +121,7 @@ async fn handle_user_message(
         UserMessage::BreakCompleted(order_number) => {
             client
                 .get(format!(
-                    "http://localhost:3000/order_completed/{}",
+                    "http://18.212.208.3:3000/order_completed/{}",
                     order_number
                 ))
                 .send()
