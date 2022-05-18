@@ -4,6 +4,7 @@ version: 2.1
 
 orbs:
   win: circleci/windows@4.1
+  aws-code-deploy: circleci/aws-code-deploy@2.0.0
 
 # Define a job to be invoked later in a workflow.
 # See: https://circleci.com/docs/2.0/configuration-reference/#jobs
@@ -21,14 +22,16 @@ jobs:
           name: "Test workspace"
           command: "cargo test --workspace"
 
-  build:
+  build-and-deploy-server:
     docker:
       - image: rust:latest
     steps:
       - checkout
       - run:
-          name: "build server"
-          command: "cargo build --release"
+          name: "build and deploy server"
+          command: |
+            cargo build --release -p server
+            ./install.sh
 
   build-win: # name of your job
     # shell: bash.exe
@@ -74,11 +77,19 @@ jobs:
 # Invoke jobs via workflows
 # See: https://circleci.com/docs/2.0/configuration-reference/#workflows
 workflows:
-  # test-workflow:
-  #   jobs:
-  #     - test
-
-  build-workflow:
+  server-workflow:
+    when:
+      matches:
+        pattern: |
+          ^server-v\d+.\d+.\d+$
+        value: << pipeline.git.tag >>
     jobs:
-      # - build
+      - build-and-deploy-server
+
+  test-workflow:
+    jobs:
+      - test
+
+  windows-build-workflow:
+    jobs:
       - build-win
