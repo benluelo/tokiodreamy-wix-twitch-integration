@@ -78,11 +78,11 @@ jobs:
 # See: https://circleci.com/docs/2.0/configuration-reference/#workflows
 workflows:
   server-workflow:
-    when:
-      matches:
-        pattern: |
-          ^server-v\d+\.\d+\.\d+$
-        value: << pipeline.git.tag >>
+    # when:
+    #   matches:
+    #     pattern: |
+    #       ^server-v\d+\.\d+\.\d+$
+    #     value: << pipeline.git.tag >>
     jobs:
       - build-and-deploy-server
 
