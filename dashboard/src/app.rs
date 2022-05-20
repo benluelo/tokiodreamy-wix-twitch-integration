@@ -1,17 +1,16 @@
-use iced::pure::{
-    button, column, container, horizontal_space, row, scrollable, text,
-    Application, Element,
-};
-use iced::pure::{horizontal_rule, tooltip};
-use iced::rule::FillMode;
+use futures::SinkExt;
 use iced::{
-    button, container, executor, rule, Background, Color, Command, Length, Padding, Vector,
+    button, container, executor,
+    pure::{
+        button, column, container, horizontal_rule, horizontal_space, row, scrollable, text,
+        tooltip, Application, Element,
+    },
+    rule::{self, FillMode},
+    Background, Color, Command, Length, Padding, Vector,
 };
 use iced_native::subscription::Subscription;
-use models::wix::OrderLineItem;
-use models::{Breaks, SseEvent};
-use tokio::runtime::Handle;
-use tokio::sync::watch;
+use models::{wix::OrderLineItem, Breaks, SseEvent};
+use tokio::{runtime::Handle, sync::watch};
 
 use crate::initialize_widget_server;
 use crate::server::{self, connect, UserMessage};
@@ -74,12 +73,29 @@ impl Application for Dashboard {
             InnerAppMessage::Connected => Command::none(),
             InnerAppMessage::Disconnected => Command::none(),
             InnerAppMessage::BreakCompleted(idx) => {
-                self.breaks.complete(idx);
+                let completed_break = self.breaks.complete(idx);
                 self.widget_notification_sender
                     .send(self.breaks.clone())
                     .unwrap();
 
-                Command::none()
+                match self.state {
+                    AppState::Disconnected => {
+                        // TODO: Store somewhere for when reconnected
+
+                        Command::none()
+                    }
+                    AppState::Connected(ref state) => {
+                        let mut state = state.clone();
+                        Command::perform(
+                            async move {
+                                state
+                                    .send(UserMessage::BreakCompleted(completed_break.order_id))
+                                    .await
+                            },
+                            |_| InnerAppMessage::MessageSent,
+                        )
+                    }
+                }
             }
             InnerAppMessage::EventSourceEvent(event) => match event {
                 server::Event::Connected {

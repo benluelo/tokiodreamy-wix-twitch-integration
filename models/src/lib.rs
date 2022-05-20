@@ -20,8 +20,8 @@ impl Breaks {
         self.ordered_breaks.push(order);
     }
 
-    pub fn complete(&mut self, idx: usize) {
-        let _ = self.ordered_breaks.remove(idx);
+    pub fn complete(&mut self, idx: usize) -> OrderWithOrder {
+        self.ordered_breaks.remove(idx)
     }
 
     pub fn empty() -> Breaks {
