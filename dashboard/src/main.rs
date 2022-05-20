@@ -23,6 +23,8 @@ use tokio_stream::wrappers::WatchStream;
 mod app;
 mod server;
 
+const DEFAULT_FONT: &[u8] = include_bytes!("../../assets/NanumGothic-Regular.ttf");
+
 pub fn main() -> iced::Result {
     // tracing_subscriber::fmt::init();
     dotenv::dotenv().unwrap();
@@ -32,6 +34,7 @@ pub fn main() -> iced::Result {
             icon: Some(Icon::from_rgba(ICON.to_vec(), ICON_HEIGHT, ICON_WIDTH).unwrap()),
             ..Default::default()
         },
+        default_font: Some(DEFAULT_FONT),
         ..Default::default()
     })
 }

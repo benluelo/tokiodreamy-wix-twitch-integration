@@ -23,12 +23,9 @@ pub fn connect() -> Subscription<Breaks> {
                 }
 
                 SubscriptionState::Connected { mut event_source } => {
-                    dbg!("state: connected");
                     match event_source.next().await {
                         Some(Ok(EsEvent::Message(message))) => {
-                            // dbg!(&message);
                             let msg = serde_json::from_str(&message.data).unwrap();
-                            println!("received msg: {:?}", &msg);
                             (Some(msg), SubscriptionState::Connected { event_source })
                         }
                         Some(Ok(_)) => (None, SubscriptionState::Connected { event_source }),

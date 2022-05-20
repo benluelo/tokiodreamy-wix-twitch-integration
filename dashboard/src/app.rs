@@ -6,9 +6,9 @@ use iced::{
         tooltip, Application, Element,
     },
     rule::{self, FillMode},
-    Background, Color, Command, Length, Padding, Vector,
+    Background, Color, Command, Font, Length, Padding, Vector,
 };
-use iced_native::subscription::Subscription;
+use iced_native::{subscription::Subscription, text};
 use models::{wix::OrderLineItem, Breaks, SseEvent};
 use tokio::{runtime::Handle, sync::watch};
 
@@ -25,6 +25,11 @@ impl Default for AppState {
         AppState::Disconnected
     }
 }
+
+const FONT: Font = Font::External {
+    name: "Nanum Gothic",
+    bytes: include_bytes!("../../assets/NanumGothic-Regular.ttf"),
+};
 
 #[derive(Debug, Clone)]
 pub enum InnerAppMessage {
@@ -168,39 +173,32 @@ impl Application for Dashboard {
         // dbg!(self.break_order.len());
         scrollable(
             container(
-                self.breaks
-                    .iter()
-                    .enumerate()
-                    // .rev()
-                    .fold(
-                        column()
-                            .spacing(5)
-                            .width(Length::Fill)
-                            .height(Length::Shrink),
-                        |col, (idx, order)| {
-                            col.push(
-                                container(
-                                    column()
-                                        .spacing(5)
-                                        .push(
-                                            // username and order number
-                                            row()
-                                                .push(
-                                                    text(&order.twitch_username)
-                                                        .color(PRIMARY_TEXT_COLOR),
-                                                )
-                                                .push(horizontal_space(Length::Fill))
-                                                .push(
-                                                    text(order.order_id.to_string())
-                                                        .color(PRIMARY_TEXT_COLOR),
-                                                ),
-                                        )
-                                        .push(
-                                            // items
-                                            container(build_line_items(
-                                                &order.order.line_items,
-                                                idx,
-                                            ))
+                self.breaks.iter().enumerate().fold(
+                    column()
+                        .spacing(5)
+                        .width(Length::Fill)
+                        .height(Length::Shrink),
+                    |col, (idx, order)| {
+                        col.push(
+                            container(
+                                column()
+                                    .spacing(5)
+                                    .push(
+                                        // username and order number
+                                        row()
+                                            .push(
+                                                text(&order.twitch_username)
+                                                    .color(PRIMARY_TEXT_COLOR),
+                                            )
+                                            .push(horizontal_space(Length::Fill))
+                                            .push(
+                                                text(order.order_id.to_string())
+                                                    .color(PRIMARY_TEXT_COLOR),
+                                            ),
+                                    )
+                                    .push(
+                                        // items
+                                        container(build_line_items(&order.order.line_items, idx))
                                             .width(Length::Fill)
                                             .height(Length::Shrink)
                                             .style(
@@ -208,56 +206,52 @@ impl Application for Dashboard {
                                                     .bordered(true)
                                                     .line_color(PRIMARY_LIGHT_COLOR),
                                             ),
-                                        )
-                                        .push(
-                                            row()
-                                                .spacing(5)
-                                                .push(horizontal_space(Length::Fill))
-                                                .push({
-                                                    let mut btn = button(text("▲"))
-                                                        .style(ButtonStyle::primary_light());
-                                                    if !self.breaks.idx_is_first(idx) {
-                                                        btn = btn
-                                                            .on_press(InnerAppMessage::MoveUp(idx))
-                                                    }
-                                                    btn
-                                                })
-                                                .push({
-                                                    let mut btn = button(text("▼"))
-                                                        .style(ButtonStyle::primary_light());
-                                                    if !self.breaks.idx_is_last(idx) {
-                                                        btn = btn.on_press(
-                                                            InnerAppMessage::MoveDown(idx),
-                                                        )
-                                                    }
-                                                    btn
-                                                })
-                                                .push(
-                                                    button(text("Completed"))
-                                                        .style(ButtonStyle::secondary())
-                                                        .on_press(InnerAppMessage::BreakCompleted(
-                                                            idx,
-                                                        )),
-                                                ),
-                                        ),
-                                )
-                                .width(Length::Fill)
-                                .height(Length::Shrink)
-                                .padding(Padding {
-                                    top: 5,
-                                    right: 5,
-                                    bottom: 5,
-                                    left: 5,
-                                })
-                                .style(
-                                    ContainerStyle::primary()
-                                        .bordered(true)
-                                        .line_color(PRIMARY_LIGHT_COLOR),
-                                ),
+                                    )
+                                    .push(
+                                        row()
+                                            .spacing(5)
+                                            .push(horizontal_space(Length::Fill))
+                                            .push({
+                                                let mut btn = button(text("▲"))
+                                                    .style(ButtonStyle::primary_light());
+                                                if !self.breaks.idx_is_first(idx) {
+                                                    btn = btn.on_press(InnerAppMessage::MoveUp(idx))
+                                                }
+                                                btn
+                                            })
+                                            .push({
+                                                let mut btn = button(text("▼"))
+                                                    .style(ButtonStyle::primary_light());
+                                                if !self.breaks.idx_is_last(idx) {
+                                                    btn =
+                                                        btn.on_press(InnerAppMessage::MoveDown(idx))
+                                                }
+                                                btn
+                                            })
+                                            .push(
+                                                button(text("Completed"))
+                                                    .style(ButtonStyle::secondary())
+                                                    .on_press(InnerAppMessage::BreakCompleted(idx)),
+                                            ),
+                                    ),
                             )
-                            // .push(horizontal_rule(2).style(RuleStyle::primary_light()))
-                        },
-                    ),
+                            .width(Length::Fill)
+                            .height(Length::Shrink)
+                            .padding(Padding {
+                                top: 5,
+                                right: 5,
+                                bottom: 5,
+                                left: 5,
+                            })
+                            .style(
+                                ContainerStyle::primary()
+                                    .bordered(true)
+                                    .line_color(PRIMARY_LIGHT_COLOR),
+                            ),
+                        )
+                        // .push(horizontal_rule(2).style(RuleStyle::primary_light()))
+                    },
+                ),
             )
             .width(Length::Fill)
             .height(Length::Shrink)
@@ -287,7 +281,6 @@ fn build_line_items(items: &Vec<OrderLineItem>, idx: usize) -> Element<'static, 
                 items_col = items_col.push(horizontal_rule(2).style(RuleStyle::primary_dark()))
             }
             items_col.push(if idx == 0 {
-                dbg!(idx);
                 Element::<InnerAppMessage>::new({
                     let row: iced_pure::widget::Row<InnerAppMessage, iced::Renderer> = row()
                         .push(text(item.quantity.to_string()))
@@ -478,13 +471,6 @@ const SECONDARY_TEXT_COLOR: Color = Color::from_rgb(
     0x00 as f32 / 255.0,
     0x00 as f32 / 255.0,
 );
-
-const TOKIO_BLUE: Color = Color {
-    r: 2.0 / 255.0,
-    g: 165.0 / 255.0,
-    b: 224.0 / 255.0,
-    a: 1.0,
-};
 
 impl container::StyleSheet for ContainerStyle {
     fn style(&self) -> container::Style {
