@@ -12,7 +12,7 @@ use models::Breaks;
 
 use crate::server::connect;
 
-pub(crate) struct StreamWindow {
+pub(crate) struct Widget {
     breaks: Breaks,
 }
 
@@ -21,7 +21,7 @@ pub enum Message {
     NewState(Breaks),
 }
 
-impl Application for StreamWindow {
+impl Application for Widget {
     type Message = Message;
     type Flags = ();
     type Executor = executor::Default;

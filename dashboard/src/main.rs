@@ -9,8 +9,12 @@ use axum::{
     Router,
 };
 use futures::StreamExt;
-use iced::{pure::Application, Settings};
-use models::Breaks;
+use iced::{
+    pure::Application,
+    window::{self, Icon},
+    Settings,
+};
+use models::{Breaks, ICON, ICON_HEIGHT, ICON_WIDTH};
 use tokio::sync::watch;
 
 use crate::app::Dashboard;
@@ -23,13 +27,16 @@ pub fn main() -> iced::Result {
     // tracing_subscriber::fmt::init();
     dotenv::dotenv().unwrap();
 
-    Dashboard::run(Settings::with_flags(()))
+    Dashboard::run(Settings {
+        window: window::Settings {
+            icon: Some(Icon::from_rgba(ICON.to_vec(), ICON_HEIGHT, ICON_WIDTH).unwrap()),
+            ..Default::default()
+        },
+        ..Default::default()
+    })
 }
 
-async fn initialize_widget_server(
-    // channel: Arc<RwLock<Option<UnboundedReceiver<StreamCaptureWindowMessage>>>>,
-    channel: watch::Receiver<Breaks>,
-) {
+async fn initialize_widget_server(channel: watch::Receiver<Breaks>) {
     let app = Router::new().route(
         "/sse",
         get(|| async move {

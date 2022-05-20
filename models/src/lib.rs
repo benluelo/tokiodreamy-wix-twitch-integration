@@ -2,6 +2,10 @@ use serde::{Deserialize, Serialize};
 
 use crate::wix::{NewOrder, OrderNumber};
 
+pub const ICON: &[u8] = include_bytes!("../../assets/icon.rgba");
+pub const ICON_HEIGHT: u32 = 1024;
+pub const ICON_WIDTH: u32 = 1024;
+
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct Breaks {
     ordered_breaks: Vec<OrderWithOrder>,
