@@ -22,6 +22,8 @@ use models::{
 use parking_lot::RwLock;
 use sqlx::{postgres::PgPoolOptions, query, query_as, PgPool};
 
+use crate::auth::AuthorizedUser;
+
 #[derive(Debug, clap::Parser)]
 struct Args {
     /// Path to the dotenv file containing the required environment variables.
@@ -64,6 +66,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 }
 
 async fn sse_handler(
+    _: AuthorizedUser,
     Extension(channel_to_websocket): Extension<Arc<RwLock<Option<UnboundedSender<OrderNumber>>>>>,
     Extension(db): Extension<PgPool>,
     // TODO: Better error type
@@ -75,7 +78,7 @@ async fn sse_handler(
         *write_lock = Some(new_order_notification_sender);
     }
 
-    let strm = new_order_notification_receiver.then(move |new_order_id| {
+    let event_stream = new_order_notification_receiver.then(move |new_order_id| {
         let db = db.clone();
         async move {
             query_as!(
@@ -102,7 +105,7 @@ async fn sse_handler(
         }
     });
 
-    Sse::new(strm).keep_alive(KeepAlive::default())
+    Sse::new(event_stream).keep_alive(KeepAlive::default())
 }
 
 #[tracing::instrument(skip_all)]
@@ -171,7 +174,7 @@ async fn new_order(
 }
 
 #[tracing::instrument(skip_all)]
-async fn all_orders(Extension(db): Extension<PgPool>) -> impl IntoResponse {
+async fn all_orders(_: AuthorizedUser, Extension(db): Extension<PgPool>) -> impl IntoResponse {
     match query_as!(
         OrderWithJson,
         r#"
@@ -225,6 +228,82 @@ async fn order_completed(
                 Json(format!("error deleting from the database: {}", why)),
             )
                 .into_response()
+        }
+    }
+}
+
+mod auth {
+    use axum::{
+        async_trait,
+        extract::{FromRequest, RequestParts},
+        http::{header::AUTHORIZATION, StatusCode},
+    };
+    use sqlx::{query_as, PgPool};
+
+    pub struct AuthorizedUser {
+        who: String,
+    }
+
+    #[async_trait]
+    impl<B> FromRequest<B> for AuthorizedUser
+    where
+        B: Send, // required by `async_trait`
+    {
+        type Rejection = StatusCode;
+
+        async fn from_request(req: &mut RequestParts<B>) -> Result<Self, Self::Rejection> {
+            let db = req.extensions().get::<PgPool>().unwrap();
+            let auth_header: &str = req
+                .headers()
+                .get(AUTHORIZATION)
+                .ok_or(StatusCode::UNAUTHORIZED)?
+                .to_str()
+                .map_err(|_| StatusCode::UNAUTHORIZED)?;
+            let decoded = base64::decode(auth_header)
+                .map_err(|_| StatusCode::UNAUTHORIZED)?
+                .split(|&c| c == ':' as u8)
+                .map(|b| String::from_utf8(b.into()))
+                .collect::<Result<Vec<_>, _>>()
+                .map_err(|_| StatusCode::UNAUTHORIZED)?;
+
+            let (username, key) = match &*decoded {
+                [username, key] => (username, key),
+                _ => return Err(StatusCode::UNAUTHORIZED),
+            };
+
+            struct Exists {
+                exists: bool,
+            }
+
+            match query_as!(
+                Exists,
+                r#"
+                SELECT
+                EXISTS(
+                    SELECT 1
+                    FROM public.authentication_keys
+                    WHERE
+                        username = $1
+                    AND
+                        key = $2
+                )
+                AS "exists!"
+                "#,
+                username,
+                key
+            )
+            .fetch_one(db)
+            .await
+            {
+                Ok(Exists { exists: true }) => Ok(AuthorizedUser {
+                    who: username.clone(),
+                }),
+                Ok(Exists { exists: false }) => Err(StatusCode::UNAUTHORIZED),
+                Err(why) => {
+                    tracing::error!("error selecting from the database: {}", why);
+                    Err(StatusCode::INTERNAL_SERVER_ERROR)
+                }
+            }
         }
     }
 }

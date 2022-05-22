@@ -29,3 +29,4 @@ dotenv = "0.15.0"
 parking_lot = "0.12.0"
 tokio-stream = { version = "0.1.8", features = ["sync"] }
 serde = "1.0.137"
+base64 = "0.13.0"

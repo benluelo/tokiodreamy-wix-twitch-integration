@@ -826,6 +826,7 @@ name = "dashboard"
 version = "0.1.0"
 dependencies = [
  "axum",
+ "base64",
  "crossbeam-channel 0.5.4",
  "dotenv",
  "futures",
@@ -3335,6 +3336,7 @@ name = "server"
 version = "0.1.0"
 dependencies = [
  "axum",
+ "base64",
  "clap",
  "dotenv",
  "futures",
