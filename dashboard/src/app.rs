@@ -1,4 +1,9 @@
-use futures::SinkExt;
+use std::sync::Arc;
+
+use futures::{
+    channel::{mpsc, oneshot},
+    SinkExt,
+};
 use iced::{
     button, container, executor,
     pure::{
@@ -6,45 +11,50 @@ use iced::{
         tooltip, Application, Element,
     },
     rule::{self, FillMode},
-    Background, Color, Command, Font, Length, Padding, Vector,
+    Background, Color, Command, Length, Padding, Vector,
 };
-use iced_native::{subscription::Subscription, text};
+use iced_native::subscription::Subscription;
+use iced_pure::text_input;
 use models::{wix::OrderLineItem, Breaks, SseEvent};
 use tokio::{runtime::Handle, sync::watch};
 
 use crate::initialize_widget_server;
 use crate::server::{self, connect, UserMessage};
 
+#[derive(Debug)]
 enum AppState {
-    Disconnected,
-    Connected(futures::channel::mpsc::Sender<UserMessage>),
+    Init,
+    AwaitingPassword {
+        channel: mpsc::Sender<String>,
+        last_password_was_bad: bool,
+    },
+    Disconnected(DisconnectReason),
+    Connected(mpsc::Sender<UserMessage>),
 }
-
-impl Default for AppState {
-    fn default() -> Self {
-        AppState::Disconnected
-    }
-}
-
-const FONT: Font = Font::External {
-    name: "Nanum Gothic",
-    bytes: include_bytes!("../../assets/NanumGothic-Regular.ttf"),
-};
 
 #[derive(Debug, Clone)]
 pub enum InnerAppMessage {
     MessageSent,
-    Connected,
-    Disconnected,
+    ConnectedToServer,
+    PasswordUpdated(String),
+    PasswordSubmitted,
+    Disconnected(DisconnectReason),
     EventSourceEvent(crate::server::Event),
     BreakCompleted(usize),
     MoveUp(usize),
     MoveDown(usize),
 }
 
+#[derive(Debug, Clone)]
+pub enum DisconnectReason {
+    BadPassword,
+    Other,
+}
+
 pub(crate) struct Dashboard {
     breaks: Breaks,
     state: AppState,
+    auth_key: String,
     widget_notification_sender: watch::Sender<Breaks>,
 }
 
@@ -61,8 +71,10 @@ impl Application for Dashboard {
         (
             Self {
                 breaks: Breaks::empty(),
-                state: Default::default(),
+                state: AppState::Init,
                 widget_notification_sender,
+                // TODO: Read from file
+                auth_key: Default::default(),
             },
             Command::none(),
         )
@@ -75,8 +87,7 @@ impl Application for Dashboard {
     fn update(&mut self, message: InnerAppMessage) -> Command<InnerAppMessage> {
         match message {
             InnerAppMessage::MessageSent => Command::none(),
-            InnerAppMessage::Connected => Command::none(),
-            InnerAppMessage::Disconnected => Command::none(),
+            InnerAppMessage::ConnectedToServer => Command::none(),
             InnerAppMessage::BreakCompleted(idx) => {
                 let completed_break = self.breaks.complete(idx);
                 self.widget_notification_sender
@@ -84,8 +95,8 @@ impl Application for Dashboard {
                     .unwrap();
 
                 match self.state {
-                    AppState::Disconnected => {
-                        // TODO: Store somewhere for when reconnected
+                    AppState::Disconnected(_) => {
+                        // TODO: Store break updates somewhere for when reconnected
 
                         Command::none()
                     }
@@ -98,6 +109,13 @@ impl Application for Dashboard {
                                     .await
                             },
                             |_| InnerAppMessage::MessageSent,
+                        )
+                    }
+
+                    _ => {
+                        panic!(
+                            "Invalid AppState for BreakCompleted message: {:?}",
+                            self.state
                         )
                     }
                 }
@@ -116,8 +134,8 @@ impl Application for Dashboard {
 
                     Command::none()
                 }
-                server::Event::EventStreamDisconnected => {
-                    self.state = AppState::Disconnected;
+                server::Event::EventStreamDisconnected(reason) => {
+                    self.state = AppState::Disconnected(reason);
 
                     Command::none()
                 }
@@ -133,6 +151,17 @@ impl Application for Dashboard {
                             Command::none()
                         }
                     }
+                }
+                server::Event::AwaitingPassword {
+                    channel,
+                    last_password_was_bad,
+                } => {
+                    self.state = AppState::AwaitingPassword {
+                        channel,
+                        last_password_was_bad,
+                    };
+
+                    Command::none()
                 }
             },
             InnerAppMessage::MoveUp(idx) => {
@@ -151,6 +180,31 @@ impl Application for Dashboard {
 
                 Command::none()
             }
+            InnerAppMessage::PasswordUpdated(new_password) => {
+                self.auth_key = new_password;
+
+                Command::none()
+            }
+            InnerAppMessage::PasswordSubmitted => match self.state {
+                AppState::AwaitingPassword {
+                    ref channel,
+                    last_password_was_bad: _,
+                } => {
+                    let auth_key = self.auth_key.clone();
+                    let mut sender = channel.clone();
+                    Command::perform(async move { sender.send(auth_key).await }, |_| {
+                        InnerAppMessage::MessageSent
+                    })
+                }
+
+                _ => {
+                    panic!(
+                        "Invalid AppState for PasswordSubmitted message: {:?}",
+                        self.state
+                    )
+                }
+            },
+            InnerAppMessage::Disconnected(_) => todo!(),
         }
     }
 
@@ -163,108 +217,155 @@ impl Application for Dashboard {
     }
 
     fn view(&self) -> Element<InnerAppMessage> {
-        if self.breaks.is_empty() {
-            return container(text("No breaks :(").size(24).color(PRIMARY_COLOR))
-                .center_x()
-                // .align_items(iced::Alignment::Center)
-                .padding(10)
-                .into();
-        }
-        // dbg!(self.break_order.len());
-        scrollable(
-            container(
-                self.breaks.iter().enumerate().fold(
-                    column()
-                        .spacing(5)
-                        .width(Length::Fill)
-                        .height(Length::Shrink),
-                    |col, (idx, order)| {
-                        col.push(
-                            container(
-                                column()
-                                    .spacing(5)
-                                    .push(
-                                        // username and order number
-                                        row()
-                                            .push(
-                                                text(&order.twitch_username)
-                                                    .color(PRIMARY_TEXT_COLOR),
-                                            )
-                                            .push(horizontal_space(Length::Fill))
-                                            .push(
-                                                text(order.order_id.to_string())
-                                                    .color(PRIMARY_TEXT_COLOR),
-                                            ),
-                                    )
-                                    .push(
-                                        // items
-                                        container(build_line_items(&order.order.line_items, idx))
-                                            .width(Length::Fill)
-                                            .height(Length::Shrink)
-                                            .style(
-                                                ContainerStyle::transparent()
-                                                    .bordered(true)
-                                                    .line_color(PRIMARY_LIGHT_COLOR),
-                                            ),
-                                    )
-                                    .push(
-                                        row()
-                                            .spacing(5)
-                                            .push(horizontal_space(Length::Fill))
-                                            .push({
-                                                let mut btn = button(text("▲"))
-                                                    .style(ButtonStyle::primary_light());
-                                                if !self.breaks.idx_is_first(idx) {
-                                                    btn = btn.on_press(InnerAppMessage::MoveUp(idx))
-                                                }
-                                                btn
-                                            })
-                                            .push({
-                                                let mut btn = button(text("▼"))
-                                                    .style(ButtonStyle::primary_light());
-                                                if !self.breaks.idx_is_last(idx) {
-                                                    btn =
-                                                        btn.on_press(InnerAppMessage::MoveDown(idx))
-                                                }
-                                                btn
-                                            })
-                                            .push(
-                                                button(text("Completed"))
-                                                    .style(ButtonStyle::secondary())
-                                                    .on_press(InnerAppMessage::BreakCompleted(idx)),
-                                            ),
-                                    ),
-                            )
-                            .width(Length::Fill)
-                            .height(Length::Shrink)
-                            .padding(Padding {
-                                top: 5,
-                                right: 5,
-                                bottom: 5,
-                                left: 5,
-                            })
-                            .style(
-                                ContainerStyle::primary()
-                                    .bordered(true)
-                                    .line_color(PRIMARY_LIGHT_COLOR),
-                            ),
-                        )
-                        // .push(horizontal_rule(2).style(RuleStyle::primary_light()))
-                    },
-                ),
+        match self.state {
+            AppState::Disconnected(ref reason) => match reason {
+                DisconnectReason::BadPassword => column()
+                    .push(text_input(
+                        "Enter password:",
+                        &self.auth_key,
+                        InnerAppMessage::PasswordUpdated,
+                    ))
+                    .push(build_breaks(&self))
+                    .into(),
+                DisconnectReason::Other => column()
+                    .push(container(text("Something went wrong")))
+                    .push(build_breaks(&self))
+                    .into(),
+            },
+            AppState::Connected(_) => build_breaks(&self),
+            AppState::AwaitingPassword {
+                channel: _,
+                last_password_was_bad,
+            } => if last_password_was_bad {
+                column().push(text("Password incorrect. Please try again:"))
+            } else {
+                column()
+            }
+            .push(
+                text_input(
+                    "Enter password:",
+                    &self.auth_key,
+                    InnerAppMessage::PasswordUpdated,
+                )
+                .on_submit(InnerAppMessage::PasswordSubmitted),
             )
-            .width(Length::Fill)
-            .height(Length::Shrink)
-            .padding(Padding {
-                top: 5,
-                right: 15,
-                bottom: 5,
-                left: 5,
-            })
-            .style(ContainerStyle::primary_dark().bordered(false)),
-        )
-        .into()
+            .push(build_breaks(&self))
+            .into(),
+            AppState::Init => column()
+                .push(container(text("Initializing...")))
+                .push(build_breaks(&self))
+                .into(),
+        }
     }
+}
+
+fn build_breaks(
+    Dashboard {
+        breaks,
+        state,
+        auth_key,
+        widget_notification_sender,
+    }: &Dashboard,
+) -> Element<'static, InnerAppMessage> {
+    if breaks.is_empty() {
+        return container(text("No breaks :(").size(24).color(PRIMARY_COLOR))
+            .center_x()
+            // .align_items(iced::Alignment::Center)
+            .padding(10)
+            .into();
+    }
+    // dbg!(self.break_order.len());
+    scrollable(
+        container(
+            breaks.iter().enumerate().fold(
+                column()
+                    .spacing(5)
+                    .width(Length::Fill)
+                    .height(Length::Shrink),
+                |col, (idx, order)| {
+                    col.push(
+                        container(
+                            column()
+                                .spacing(5)
+                                .push(
+                                    // username and order number
+                                    row()
+                                        .push(
+                                            text(&order.twitch_username).color(PRIMARY_TEXT_COLOR),
+                                        )
+                                        .push(horizontal_space(Length::Fill))
+                                        .push(
+                                            text(order.order_id.to_string())
+                                                .color(PRIMARY_TEXT_COLOR),
+                                        ),
+                                )
+                                .push(
+                                    // items
+                                    container(build_line_items(&order.order.line_items, idx))
+                                        .width(Length::Fill)
+                                        .height(Length::Shrink)
+                                        .style(
+                                            ContainerStyle::transparent()
+                                                .bordered(true)
+                                                .line_color(PRIMARY_LIGHT_COLOR),
+                                        ),
+                                )
+                                .push(
+                                    row()
+                                        .spacing(5)
+                                        .push(horizontal_space(Length::Fill))
+                                        .push({
+                                            let mut btn = button(text("▲"))
+                                                .style(ButtonStyle::primary_light());
+                                            if !breaks.idx_is_first(idx) {
+                                                btn = btn.on_press(InnerAppMessage::MoveUp(idx))
+                                            }
+                                            btn
+                                        })
+                                        .push({
+                                            let mut btn = button(text("▼"))
+                                                .style(ButtonStyle::primary_light());
+                                            if !breaks.idx_is_last(idx) {
+                                                btn = btn.on_press(InnerAppMessage::MoveDown(idx))
+                                            }
+                                            btn
+                                        })
+                                        .push(
+                                            button(text("Completed"))
+                                                .style(ButtonStyle::secondary())
+                                                .on_press(InnerAppMessage::BreakCompleted(idx)),
+                                        ),
+                                ),
+                        )
+                        .width(Length::Fill)
+                        .height(Length::Shrink)
+                        .padding(Padding {
+                            top: 5,
+                            right: 5,
+                            bottom: 5,
+                            left: 5,
+                        })
+                        .style(
+                            ContainerStyle::primary()
+                                .bordered(true)
+                                .line_color(PRIMARY_LIGHT_COLOR),
+                        ),
+                    )
+                    // .push(horizontal_rule(2).style(RuleStyle::primary_light()))
+                },
+            ),
+        )
+        .width(Length::Fill)
+        .height(Length::Shrink)
+        .padding(Padding {
+            top: 5,
+            right: 15,
+            bottom: 5,
+            left: 5,
+        })
+        .style(ContainerStyle::primary_dark().bordered(false)),
+    )
+    .into()
 }
 
 fn build_line_items(items: &Vec<OrderLineItem>, idx: usize) -> Element<'static, InnerAppMessage> {

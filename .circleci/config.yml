@@ -58,21 +58,6 @@ jobs:
             ls .
             ls .\target
             ls .\target\release
-          # mv .\target\release\dashboard.exe dashboard.exe 
-      # - run:
-      #     environment:
-      #       CARGO_NET_GIT_FETCH_WITH_CLI: "true"
-      #     name: "build widget"
-      #     command: |
-      #       ~\.cargo\bin\cargo.exe build --release -p widget
-      - store_artifacts:
-          path: |
-            C:\Users\circleci\project\target\release\dashboard.exe
-          destination: dashboard.exe
-      # - store_artifacts:
-      #     path: |
-      #       .\target\release\widget.exe
-      #     destination: "widget.exe"
 
 # Invoke jobs via workflows
 # See: https://circleci.com/docs/2.0/configuration-reference/#workflows

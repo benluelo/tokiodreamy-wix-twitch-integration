@@ -10,6 +10,7 @@ use axum::{
     routing::{get, post},
     Extension, Json, Router,
 };
+use axum_extra::routing::SpaRouter;
 use clap::Parser;
 use futures::{
     channel::mpsc::{unbounded, UnboundedSender},
@@ -43,11 +44,18 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .connect(&dotenv::var("DATABASE_URL")?)
         .await?;
 
+    // `SpaRouter` is the easiest way to serve assets at a nested route like `/assets`
+    // let app = Router::new()
+    //     .route("/foo", get(|| async { "Hi from /foo" }))
+    //     .merge(axum_extra::routing::SpaRouter::new("/assets", "."))
+    //     .layer(TraceLayer::new_for_http());
+
     let app = Router::new()
         .route("/all_orders", get(all_orders))
         .route("/order_completed/:order_number", get(order_completed))
         .route("/sse", get(sse_handler))
         .route("/new_order", post(new_order))
+        .merge(SpaRouter::new("/downloads", "./downloads"))
         .layer(Extension(pool))
         .layer(Extension(Arc::new(RwLock::<
             Option<UnboundedSender<OrderNumber>>,

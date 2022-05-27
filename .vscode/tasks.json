@@ -6,12 +6,12 @@
 			"command": "run",
 			"args": [
 				"-p",
-				"iced-client"
+				"dashboard"
 			],
 			"problemMatcher": [
 				"$rustc"
 			],
-			"label": "run client"
+			"label": "run dashboard"
 		}
 	]
 }

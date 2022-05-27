@@ -26,8 +26,8 @@ mod server;
 const DEFAULT_FONT: &[u8] = include_bytes!("../../assets/NanumGothic-Regular.ttf");
 
 pub fn main() -> iced::Result {
-    // tracing_subscriber::fmt::init();
-    dotenv::dotenv().unwrap();
+    tracing_subscriber::fmt::init();
+    // dotenv::dotenv().unwrap();
 
     Dashboard::run(Settings {
         window: window::Settings {
@@ -43,7 +43,6 @@ async fn initialize_widget_server(channel: watch::Receiver<Breaks>) {
     let app = Router::new().route(
         "/sse",
         get(|| async move {
-            dbg!();
             let stream = WatchStream::new(channel)
                 .map(|breaks| Event::default().json_data(breaks).unwrap())
                 .map(Result::<_, String>::Ok);
