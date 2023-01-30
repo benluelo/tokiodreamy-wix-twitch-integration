@@ -1,44 +1,52 @@
 <script lang="ts">
-	import { browser } from '$app/env';
-	import { derived, readable, writable } from 'svelte/store';
-	import { client, LoginStatus, password, username } from './client';
+	import { login, loginStatus, LoginStatus } from './client';
+	import { checkUsernameAndPasswordSetInStorage, password, username } from './stores';
 	import LoginForm from './LoginForm.svelte';
+	import { browser } from '$app/env';
 
 	export const prerender = false;
 
-	function loginSync() {
+	export let onLoggedIn: () => void;
+
+	let onLoggedInAlreadyCalled = false;
+
+	$: if ($loginStatus === LoginStatus.Success) {
+		if (!onLoggedInAlreadyCalled) {
+			onLoggedIn();
+			onLoggedInAlreadyCalled = true;
+		}
+	}
+
+	let clicked = false;
+
+	function setClicked() {
 		console.log('clicked');
 
 		clicked = true;
-		errorMsg = undefined;
-		promise = $client.login().then((status) => {
-			switch (status) {
-				case LoginStatus.Error:
-					clicked = false;
-					errorMsg = 'Unable to login. Please ensure that your credentials are correct.';
-					console.log('bad credentials');
-
-					throw new Error("couldn't log in");
-
-				case LoginStatus.Success:
-					console.log('logged in');
-			}
-		});
 	}
-
-	let promise: Promise<void>;
-	let clicked = false;
-	let errorMsg: string | undefined = undefined;
 </script>
 
-{#if clicked}
-	{#await promise}
-		<LoginForm disabled onclick={loginSync} {username} {password} />
-	{:then}
-		<slot />
-	{:catch error}
-		<LoginForm onclick={loginSync} {username} {password} errorMsg={(errorMsg || '') + error} />
-	{/await}
-{:else}
-	<LoginForm onclick={loginSync} {username} {password} {errorMsg} />
+{#if browser}
+	{#if checkUsernameAndPasswordSetInStorage() && $loginStatus === LoginStatus.Success}
+		{#await login()}
+			Loading...
+		{:then}
+			<slot />
+		{/await}
+	{:else if clicked}
+		{#await login()}
+			<LoginForm
+				disabled
+				onclick={() => {
+					/* disabled */
+				}}
+				{username}
+				{password}
+			/>
+		{:then}
+			<slot />
+		{/await}
+	{:else}
+		<LoginForm onclick={setClicked} {username} {password} />
+	{/if}
 {/if}

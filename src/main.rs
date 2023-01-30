@@ -32,7 +32,7 @@ struct Args {
 async fn main() -> Result<(), Box<dyn Error>> {
     let args = Args::parse();
 
-    let (sender, reciever) = tokio::sync::watch::channel::<Breaks>(Breaks::empty());
+    let (sender, reciever) = tokio::sync::watch::channel::<Breaks>(Breaks::initialize());
     let sender = Arc::new(sender);
 
     tracing_subscriber::fmt::init();

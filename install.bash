@@ -7,7 +7,9 @@ echo $SSH_KEY | base64 -d >key.pem
 chmod 600 key.pem
 
 # copy built server binary to the ec2 instance
-scp -o StrictHostKeyChecking=no -i key.pem target/release/server ubuntu@ec2-18-212-208-3.compute-1.amazonaws.com:/home/ubuntu/tokiodreamy-wix-twitch-integration-server
+scp -o StrictHostKeyChecking=no \
+	-i key.pem target/release/server \
+	ubuntu@ec2-18-212-208-3.compute-1.amazonaws.com:/home/ubuntu/tokiodreamy-wix-twitch-integration-server
 
 # enter the instance
 ssh -o StrictHostKeyChecking=no -i key.pem ubuntu@ec2-18-212-208-3.compute-1.amazonaws.com <<-'SSH_EOF'

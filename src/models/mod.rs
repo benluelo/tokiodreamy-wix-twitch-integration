@@ -1,3 +1,5 @@
+use core::slice;
+
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use ts_rs::TS;
@@ -13,6 +15,10 @@ pub struct Breaks {
 }
 
 impl Breaks {
+    pub fn initialize() -> Breaks {
+        Self::from_iter([])
+    }
+
     pub fn move_up(&mut self, idx: usize) {
         self.ordered_breaks.swap(idx, idx - 1)
     }
@@ -31,10 +37,6 @@ impl Breaks {
 
     pub fn remove(&mut self, id: OrderNumber) {
         self.ordered_breaks.retain(|brk| brk.order_id == id)
-    }
-
-    pub fn empty() -> Breaks {
-        Self::from_iter([])
     }
 
     pub fn iter(&self) -> BreaksIter {
@@ -65,7 +67,7 @@ impl FromIterator<OrderWithOrder> for Breaks {
 }
 
 pub struct BreaksIter<'a> {
-    iter: core::slice::Iter<'a, OrderWithOrder>,
+    iter: slice::Iter<'a, OrderWithOrder>,
 }
 
 impl<'a> Iterator for BreaksIter<'a> {

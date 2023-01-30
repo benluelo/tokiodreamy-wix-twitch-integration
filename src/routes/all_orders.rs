@@ -8,7 +8,15 @@ use crate::{
 
 #[tracing::instrument(skip_all)]
 pub(crate) async fn get(_: AuthorizedUser, Extension(db): Extension<PgPool>) -> impl IntoResponse {
-    match query_as!(
+    all_orders(db)
+        .await
+        .map(Json)
+        .map_err(|()| StatusCode::INTERNAL_SERVER_ERROR)
+        .into_response()
+}
+
+async fn all_orders(db: PgPool) -> Result<Vec<OrderWithOrder>, ()> {
+    query_as!(
         OrderWithJson,
         r#"
         SELECT
@@ -20,17 +28,14 @@ pub(crate) async fn get(_: AuthorizedUser, Extension(db): Extension<PgPool>) -> 
     )
     .fetch_all(&db)
     .await
-    {
-        Ok(all_orders) => Json(
-            all_orders
-                .into_iter()
-                .map(Into::<OrderWithOrder>::into)
-                .collect::<Vec<_>>(),
-        )
-        .into_response(),
-        Err(why) => {
-            tracing::error!("error selecting from the database: {}", why);
-            StatusCode::INTERNAL_SERVER_ERROR.into_response()
-        }
-    }
+    .map(|all_orders| {
+        all_orders
+            .into_iter()
+            .map(Into::<OrderWithOrder>::into)
+            .collect::<Vec<_>>()
+    })
+    .map_err(|why| {
+        tracing::error!("error selecting from the database: {}", why);
+        ()
+    })
 }

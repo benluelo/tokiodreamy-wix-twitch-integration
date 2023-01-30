@@ -3,4 +3,12 @@ import type { CustomTextField } from "./CustomTextField";
 import type { OrderLineItemOption } from "./OrderLineItemOption";
 import type { OrderMediaItem } from "./OrderMediaItem";
 
-export interface OrderLineItem { index: bigint | null, quantity: bigint, name: string, options: Array<OrderLineItemOption>, customTextFields: Array<CustomTextField> | null, mediaItem: OrderMediaItem, notes: string | null, }
+export interface OrderLineItem {
+    index: bigint | null,
+    quantity: bigint,
+    name: string,
+    options: Array<OrderLineItemOption>,
+    customTextFields: Array<CustomTextField> | null,
+    mediaItem: OrderMediaItem,
+    notes: string | null,
+}
