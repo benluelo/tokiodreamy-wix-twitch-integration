@@ -3,6 +3,18 @@ use std::fmt::Display;
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
+use sqlx::postgres::{PgHasArrayType, PgTypeInfo};
+
+macro_rules! impl_HasPgArrayType {
+    ($ty:ident) => {
+        impl PgHasArrayType for $ty {
+            fn array_type_info() -> PgTypeInfo {
+                PgTypeInfo::with_name(concat!("_", stringify!($ty)))
+            }
+        }
+    };
+}
+
 #[derive(
     Debug, Deserialize, Serialize, Copy, Clone, Hash, PartialEq, Eq, PartialOrd, Ord, sqlx::Type, TS,
 )]
@@ -18,7 +30,7 @@ impl Display for OrderNumber {
     }
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone, PartialEq, Eq, TS)]
+#[derive(Debug, Deserialize, Serialize, Clone, PartialEq, Eq, TS, sqlx::Type)]
 #[ts(export, export_to = "frontend/src/generated/")]
 pub struct NewOrder {
     #[serde(rename = "buyerNote")]
@@ -47,9 +59,9 @@ impl NewOrder {
                 cf.title
                     .eq("twitch username")
                     .then(|| cf.value.clone())
-                    .ok_or(TwitchUsernameError::IncorrectTitleForCustomField(
-                        cf.value.clone(),
-                    ))
+                    .ok_or_else(|| {
+                        TwitchUsernameError::IncorrectTitleForCustomField(cf.value.clone())
+                    })
             })
             .ok_or(TwitchUsernameError::CustomFieldNotPresent)?
     }
@@ -61,15 +73,15 @@ pub enum TwitchUsernameError {
     CustomFieldNotPresent,
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone, PartialEq, Eq, TS)]
+#[derive(sqlx::Type, Debug, Deserialize, Serialize, Clone, PartialEq, Eq, TS)]
 #[ts(export, export_to = "frontend/src/generated/")]
 pub struct OrderLineItem {
-    /// REVIEW: Necessary?
+    // /// REVIEW: Necessary?
     #[serde(rename = "index")]
-    pub index: Option<u64>,
+    pub index: Option<i64>,
 
     #[serde(rename = "quantity")]
-    pub quantity: u64,
+    pub quantity: i64,
 
     /// The name of the item.
     #[serde(rename = "name")]
@@ -90,8 +102,12 @@ pub struct OrderLineItem {
     pub notes: Option<String>,
 }
 
+impl_HasPgArrayType! {
+    OrderLineItem
+}
+
 /// I'm not sure what this is
-#[derive(Debug, Deserialize, Serialize, Clone, PartialEq, Eq, TS)]
+#[derive(sqlx::Type, Debug, Deserialize, Serialize, Clone, PartialEq, Eq, TS)]
 #[ts(export, export_to = "frontend/src/generated/")]
 pub struct CustomTextField {
     #[serde(rename = "title")]
@@ -99,6 +115,10 @@ pub struct CustomTextField {
 
     #[serde(rename = "value")]
     pub value: String,
+}
+
+impl_HasPgArrayType! {
+    CustomTextField
 }
 
 /// Example: https://www.tokiodreamy.com/product-page/boltund-v-collection
@@ -109,7 +129,7 @@ pub struct CustomTextField {
 ///     "selection": "Yes"
 /// }
 /// ```
-#[derive(Debug, Deserialize, Serialize, Clone, PartialEq, Eq, TS)]
+#[derive(sqlx::Type, Debug, Deserialize, Serialize, Clone, PartialEq, Eq, TS)]
 #[ts(export, export_to = "frontend/src/generated/")]
 pub struct OrderLineItemOption {
     #[serde(rename = "option")]
@@ -119,8 +139,12 @@ pub struct OrderLineItemOption {
     pub selection: String,
 }
 
+impl_HasPgArrayType! {
+    OrderLineItemOption
+}
+
 /// https://static.wixstatic.com/media/{id} for the image file
-#[derive(Debug, Deserialize, Serialize, Clone, PartialEq, Eq, TS)]
+#[derive(sqlx::Type, Debug, Deserialize, Serialize, Clone, PartialEq, Eq, TS)]
 #[ts(export, export_to = "frontend/src/generated/")]
 pub struct OrderMediaItem {
     #[serde(rename = "altText")]
@@ -133,7 +157,7 @@ pub struct OrderMediaItem {
     pub src: String,
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone, PartialEq, Eq, TS)]
+#[derive(sqlx::Type, Debug, Deserialize, Serialize, Clone, PartialEq, Eq, TS)]
 #[ts(export, export_to = "frontend/src/generated/")]
 pub struct CustomField {
     #[serde(rename = "value")]

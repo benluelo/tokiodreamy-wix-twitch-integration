@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { OrderLineItem } from 'src/generated/OrderLineItem';
+	import KeyValueDisplay from './KeyValueDisplay.svelte';
 
 	export let lineItem: OrderLineItem;
 </script>
@@ -20,18 +21,10 @@
 	{/if}
 	<ul class="list-none p-2 border-b border-gray-300">
 		{#if lineItem.customTextFields}
-			{#each lineItem.customTextFields as customTextField}
-				<li>
-					<span>{customTextField.title}: {customTextField.value}</span>
-				</li>
-			{/each}
+			<KeyValueDisplay key="title" value="value" obj={lineItem.customTextFields} />
 		{/if}
 	</ul>
 	<ul class="list-none p-2">
-		{#each lineItem.options as option}
-			<li>
-				<span>{option.option}: {option.selection}</span>
-			</li>
-		{/each}
+		<KeyValueDisplay key="option" value="selection" obj={lineItem.options} />
 	</ul>
 </div>

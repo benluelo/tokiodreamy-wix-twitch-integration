@@ -1,18 +1,22 @@
 use std::sync::Arc;
 
-use axum::{extract::Path, http::StatusCode, response::IntoResponse, Extension, Json};
+use axum::{
+    extract::{Path, State},
+    http::StatusCode,
+    response::IntoResponse,
+};
 use sqlx::{query, PgPool};
 use tokio::sync::watch;
 
 use crate::models::{wix::OrderNumber, Breaks};
 
-#[tracing::instrument(skip_all)]
+#[tracing::instrument(skip(sender, db))]
 pub(crate) async fn post(
     Path(order_number): Path<OrderNumber>,
-    Extension(sender): Extension<Arc<watch::Sender<Breaks>>>,
-    Extension(db): Extension<PgPool>,
+    State(sender): State<Arc<watch::Sender<Breaks>>>,
+    State(db): State<PgPool>,
 ) -> impl IntoResponse {
-    sender.send_modify(|breaks| breaks.remove(order_number));
+    sender.send_modify(|breaks| breaks.remove_by_id(order_number));
 
     match query!(
         r#"
@@ -31,8 +35,8 @@ pub(crate) async fn post(
         Err(why) => {
             tracing::error!("error deleting from the database: {}", &why);
             (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(format!("error deleting from the database: {}", why)),
+                StatusCode::INTERNAL_SERVER_ERROR
+                // Json(format!("error deleting from the database: {}", why)),
             )
                 .into_response()
         }

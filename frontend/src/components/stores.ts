@@ -1,16 +1,15 @@
-import { browser } from "$app/env";
-import type { Breaks } from "../generated/Breaks";
-import { readable, writable } from "svelte/store";
-
+import { browser } from '$app/environment';
+import type { Breaks } from '../generated/Breaks';
+import { readable, writable } from 'svelte/store';
 
 export function checkUsernameAndPasswordSetInStorage(): boolean {
-    // i hate javascript
-    return !!(browser && localStorage.getItem(USERNAME_KEY) &&
-        localStorage.getItem(PASSWORD_KEY));
+	// i hate javascript
+	return !!(browser && localStorage.getItem(USERNAME_KEY) && localStorage.getItem(PASSWORD_KEY));
 }
 
 export const breaks = writable<Breaks>({
-    ordered_breaks: [/* {
+	ordered_breaks: [
+		/* {
         order: {
             "number": 10019,
             "lineItems": [
@@ -184,12 +183,13 @@ export const breaks = writable<Breaks>({
             },
             buyerNote: "this is a very important note",
         }, twitch_username: "argablarga", order_id: 10019
-    } */]
-})
+    } */
+	]
+});
 
-breaks.subscribe(break_ => {
-    console.log(break_);
-})
+breaks.subscribe((break_) => {
+	console.log(break_);
+});
 
 const USERNAME_KEY = 'USERNAME';
 const PASSWORD_KEY = 'PASSWORD';
@@ -199,11 +199,11 @@ const storedPassword = (browser && localStorage.getItem(PASSWORD_KEY)) || '';
 
 export const username = writable(storedUsername);
 export const password = writable(storedPassword);
-export const baseUrl = readable("http://127.0.0.1:3000");
+export const baseUrl = readable('http://127.0.0.1:3000');
 
 username.subscribe((newUsername) => {
-    browser && localStorage.setItem(USERNAME_KEY, newUsername);
+	browser && localStorage.setItem(USERNAME_KEY, newUsername);
 });
 password.subscribe((newPassword) => {
-    browser && localStorage.setItem(PASSWORD_KEY, newPassword);
+	browser && localStorage.setItem(PASSWORD_KEY, newPassword);
 });

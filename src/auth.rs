@@ -1,8 +1,9 @@
 use axum::{
     async_trait,
-    extract::{FromRequest, RequestParts},
-    http::{header::AUTHORIZATION, StatusCode},
+    extract::{FromRef, FromRequestParts},
+    http::{header::AUTHORIZATION, request::Parts, StatusCode},
 };
+use base64::{prelude::BASE64_STANDARD, Engine};
 use sqlx::{query_as, PgPool};
 
 pub struct AuthorizedUser {
@@ -10,24 +11,25 @@ pub struct AuthorizedUser {
 }
 
 #[async_trait]
-impl<B> FromRequest<B> for AuthorizedUser
+impl<S> FromRequestParts<S> for AuthorizedUser
 where
-    B: Send, // required by `async_trait`
+    PgPool: FromRef<S>,
+    S: Sync,
 {
     type Rejection = StatusCode;
 
-    async fn from_request(req: &mut RequestParts<B>) -> Result<Self, Self::Rejection> {
-        let db = req.extensions().get::<PgPool>().unwrap();
-        let auth_header: &str = req
-            .headers()
+    async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
+        let auth_header: &str = parts
+            .headers
             .get(AUTHORIZATION)
             .ok_or(StatusCode::UNAUTHORIZED)?
             .to_str()
             .map_err(|_| StatusCode::UNAUTHORIZED)?;
 
-        let decoded = base64::decode(auth_header)
+        let decoded = BASE64_STANDARD
+            .decode(auth_header)
             .map_err(|_| StatusCode::UNAUTHORIZED)?
-            .split(|&c| c == ':' as u8)
+            .split(|&c| c == b':')
             .map(|b| String::from_utf8(b.into()))
             .collect::<Result<Vec<_>, _>>()
             .map_err(|_| StatusCode::UNAUTHORIZED)?;
@@ -58,7 +60,7 @@ where
             username,
             key
         )
-        .fetch_one(db)
+        .fetch_one(&PgPool::from_ref(state))
         .await
         {
             Ok(Exists { exists: true }) => Ok(AuthorizedUser {

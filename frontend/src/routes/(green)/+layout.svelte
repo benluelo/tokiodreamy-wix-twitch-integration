@@ -6,9 +6,8 @@
 	<slot />
 </div>
 
-
 <style>
 	:global(body) {
-		background-color: white;
+		background-color: lime;
 	}
 </style>

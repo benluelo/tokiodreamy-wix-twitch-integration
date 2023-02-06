@@ -1,9 +1,8 @@
 <script>
-	import { registerSse } from '../../components/client';
-	import LineItem from '../../components/LineItem.svelte';
-	import { breaks } from '../../components/stores';
+	import { registerSse } from '../../../components/client';
+	import { breaks } from '../../../components/stores';
 
-	import EnsureLoggedIn from '../../components/EnsureLoggedIn.svelte';
+	import EnsureLoggedIn from '../../../components/EnsureLoggedIn.svelte';
 </script>
 
 <EnsureLoggedIn onLoggedIn={registerSse}>
@@ -11,7 +10,7 @@
 		<div>no breaks lol</div>
 	{:else}
 		<div>
-			<div class="flex flex-col max-w-md text-xl">
+			<div class="flex flex-col max-w-md text-3-xl font-black">
 				{#each $breaks.ordered_breaks as break_, idx}
 					{#if idx !== 0}
 						<hr />
@@ -25,7 +24,7 @@
 							<hr />
 						{/if}
 						<div class="">
-							{break_.twitch_username}
+							{break_.twitch_username ?? 'NO USERNAME PROVIDED!!!'}
 						</div>
 						<div class="flex flex-col pl-2 gap-y-1">
 							<div class="">

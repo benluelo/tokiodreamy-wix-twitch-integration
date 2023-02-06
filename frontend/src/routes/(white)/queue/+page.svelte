@@ -1,9 +1,9 @@
 <script lang="ts">
-	import { orderCompleted, registerSse } from '../components/client';
-	import { breaks } from '../components/stores';
+	import { orderCompleted, registerSse } from '../../../components/client';
+	import { breaks } from '../../../components/stores';
 
-	import Card from '../components/Card.svelte';
-	import LineItem from '../components/LineItem.svelte';
+	import Card from '../../../components/Card.svelte';
+	import LineItem from '../../../components/LineItem.svelte';
 	import { onMount } from 'svelte';
 
 	let loaded = false;

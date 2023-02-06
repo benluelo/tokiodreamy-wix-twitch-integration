@@ -2,7 +2,7 @@
 	import { login, loginStatus, LoginStatus } from './client';
 	import { checkUsernameAndPasswordSetInStorage, password, username } from './stores';
 	import LoginForm from './LoginForm.svelte';
-	import { browser } from '$app/env';
+	import { browser } from '$app/environment';
 
 	export const prerender = false;
 

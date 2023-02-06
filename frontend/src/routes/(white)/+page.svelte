@@ -1,7 +1,7 @@
 <script lang="ts">
-	import LinkButton from '../components/LinkButton.svelte';
+	import LinkButton from '../../components/LinkButton.svelte';
 
-	import ExternalLink from '../components/external-link.svelte';
+	import ExternalLink from '../../components/external-link.svelte';
 </script>
 
 <div class="p-1">
@@ -16,7 +16,7 @@
 			<LinkButton href="https://www.tokiodreamy.com/">
 				<span class="flex items-center">
 					Shop&nbsp<ExternalLink />
-                </span>
+				</span>
 			</LinkButton>
 		</li>
 	</ul>

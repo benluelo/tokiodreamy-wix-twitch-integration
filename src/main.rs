@@ -1,42 +1,57 @@
 use std::{error::Error, net::SocketAddr, path::PathBuf, sync::Arc};
 
 use axum::{
+    extract::FromRef,
     http::{
         header::{AUTHORIZATION, CONTENT_TYPE},
-        Method,
+        Method, StatusCode,
     },
-    routing::{get, post},
-    Extension, Router,
+    routing::{get, get_service, post},
+    Router,
 };
 use clap::Parser;
-use sqlx::postgres::PgPoolOptions;
-use tower_http::cors::{AllowOrigin, CorsLayer};
+use sqlx::{postgres::PgPoolOptions, PgPool};
+use tokio::sync::watch;
+use tower_http::{
+    cors::{AllowOrigin, CorsLayer},
+    services::ServeDir,
+};
 
 use crate::{
     models::Breaks,
-    routes::{all_orders, login, new_order, order_completed, sse},
+    routes::{all_orders, login, new_order, order_completed, sse, update_order},
 };
 
 mod auth;
 mod models;
 mod routes;
 
+const FRONT_PUBLIC: &str = "./frontend/build";
+
 #[derive(Debug, clap::Parser)]
 struct Args {
     /// Path to the dotenv file containing the required environment variables.
-    #[clap(long)]
+    #[clap(long, short = 'e')]
     dotenv_file_path: PathBuf,
+}
+
+#[derive(Clone, FromRef)]
+pub struct AppState {
+    pub pool: PgPool,
+    pub breaks_sender: Arc<watch::Sender<Breaks>>,
+    pub breaks_reciever: watch::Receiver<Breaks>,
 }
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
-    let args = Args::parse();
-
-    let (sender, reciever) = tokio::sync::watch::channel::<Breaks>(Breaks::initialize());
-    let sender = Arc::new(sender);
-
     tracing_subscriber::fmt::init();
+
+    let args = Args::parse();
     dotenv::from_path(args.dotenv_file_path).unwrap();
+
+    let (breaks_sender, breaks_reciever) =
+        tokio::sync::watch::channel::<Breaks>(Breaks::initialize());
+    let breaks_sender = Arc::new(breaks_sender);
 
     let pool = PgPoolOptions::new()
         // elephant sql free tier limits to a maximum of 5 connections. Use 1 for pgadmin, 1 for
@@ -54,7 +69,19 @@ async fn main() -> Result<(), Box<dyn Error>> {
         // .allow_origin("http://127.0.0.1:3000".parse::<HeaderValue>().unwrap());
         .allow_origin(AllowOrigin::mirror_request());
 
-    let app = Router::new()
+    let frontend_static = Router::<AppState>::new()
+        .fallback_service(
+            get_service(ServeDir::new(FRONT_PUBLIC)).handle_error(
+                |error: std::io::Error| async move {
+                    tracing::error!("Unhandled internal error: {}", error);
+
+                    StatusCode::INTERNAL_SERVER_ERROR
+                },
+            ), // .handle_error(handle_error)
+        )
+        .layer(tower_http::trace::TraceLayer::new_for_http());
+
+    let backend_router = Router::new()
         .route("/all_orders", get(all_orders::get))
         .route(
             "/order_completed/:order_number",
@@ -63,10 +90,17 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .route("/sse", get(sse::get))
         .route("/login", get(login::get))
         .route("/new_order", post(new_order::post))
-        .layer(cors)
-        .layer(Extension(pool))
-        .layer(Extension(sender))
-        .layer(Extension(reciever));
+        .route("/update_order/:order_number", post(update_order::post))
+        .layer(cors);
+
+    let app = Router::new()
+        .merge(frontend_static)
+        .merge(backend_router)
+        .with_state(AppState {
+            pool,
+            breaks_sender,
+            breaks_reciever,
+        });
 
     // run our app with hyper
     // `axum::Server` is a re-export of `hyper::Server`

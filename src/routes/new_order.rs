@@ -1,30 +1,29 @@
 use std::sync::Arc;
 
-use axum::{http::StatusCode, response::IntoResponse, Extension, Json};
-use sqlx::{query_as, PgPool};
+use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
+use sqlx::{query, PgPool};
 use tokio::sync::watch;
 
 use crate::models::{
     wix::{NewOrder, OrderNumber},
-    Breaks, OrderWithJson, OrderWithOrder,
+    Breaks, OrderWithOrder,
 };
 
 #[tracing::instrument(skip_all)]
 pub(crate) async fn post(
-    Extension(sender): Extension<Arc<watch::Sender<Breaks>>>,
-    Extension(db): Extension<PgPool>,
+    State(sender): State<Arc<watch::Sender<Breaks>>>,
+    State(db): State<PgPool>,
     Json(new_order): Json<NewOrder>,
 ) -> impl IntoResponse {
     let order_number = new_order.order_number;
+
     tracing::info!("recieved order #{}", order_number);
 
-    // TODO: Don't unwrap
-    let twitch_username = new_order.twitch_username().unwrap();
-    let json_value = serde_json::to_value(new_order)
+    let twitch_username = new_order.twitch_username().ok();
+    let json_value = serde_json::to_value(&new_order)
         .expect("Object was deserialized from JSON, should not fail");
 
-    match query_as!(
-        OrderWithJson,
+    match query!(
         r#"
         INSERT INTO public.order (
             twitch_username,
@@ -34,7 +33,7 @@ pub(crate) async fn post(
         VALUES ($1, $2, $3)
         ON CONFLICT DO NOTHING
         "#,
-        &twitch_username,
+        twitch_username.as_ref(),
         &json_value,
         order_number as OrderNumber,
     )
@@ -52,11 +51,11 @@ pub(crate) async fn post(
                 tracing::info!("order #{} saved successfully", order_number);
 
                 sender.send_modify(|breaks| {
-                    breaks.new_order(OrderWithOrder::from(OrderWithJson {
+                    breaks.new_order(OrderWithOrder {
                         twitch_username,
                         order_id: order_number,
-                        json: json_value,
-                    }))
+                        order: new_order,
+                    })
                 });
             }
 
