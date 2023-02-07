@@ -24,8 +24,8 @@ jobs:
             - server
 
   deploy:
-    docker:
-      - image: cimg/rust:1.67.0
+    # docker:
+    #   - image: cimg/rust:1.67.0
     machine:
       enabled: true
     steps:
