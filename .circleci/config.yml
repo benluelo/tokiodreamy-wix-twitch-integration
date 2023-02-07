@@ -1,82 +1,91 @@
-# Use the latest 2.1 version of CircleCI pipeline process engine.
-# See: https://circleci.com/docs/2.0/configuration-reference
 version: 2.1
 
-orbs:
-  win: circleci/windows@4.1
-  aws-code-deploy: circleci/aws-code-deploy@2.0.0
-
-# Define a job to be invoked later in a workflow.
-# See: https://circleci.com/docs/2.0/configuration-reference/#jobs
 jobs:
   test:
-    # Specify the execution environment. You can specify an image from Dockerhub or use one of our Convenience Images from CircleCI's Developer Hub.
-    # See: https://circleci.com/docs/2.0/configuration-reference/#docker-machine-macos-windows-executor
     docker:
-      - image: rust:latest
-    # Add steps to the job
-    # See: https://circleci.com/docs/2.0/configuration-reference/#steps
+      - image: cimg/rust:1.67.0
     steps:
       - checkout
       - run:
           name: "Test workspace"
           command: "cargo test --workspace"
 
-  build-and-deploy-server:
+  build:
     docker:
-      - image: rust:latest
+      - image: cimg/rust:1.67.0
     steps:
       - checkout
       - run:
-          name: "build and deploy server"
-          command: |
-            cargo build --release -p server
-            ./install.sh
+          name: "Build server"
+          command: "cargo build --release"
+      - persist_to_workspace:
+          root: target/release
+          paths:
+            - server
 
-  build-win: # name of your job
-    # shell: bash.exe
-    executor:
-      name: win/default # executor type
-      size: "medium" # resource class, can be "medium", "large", "xlarge", "2xlarge", defaults to "medium" if not specified
-    working_directory: C:\Users\circleci\project
+  deploy:
+    docker:
+      - image: cimg/rust:1.67.0
+    machine:
+      enabled: true
     steps:
-      - checkout
+      - attach_workspace:
+          # Must be absolute path or relative path from working_directory
+          at: target/release
       - run:
-          name: install
+          name: Deploy Over SSH
           command: |
-            $url = "https://static.rust-lang.org/rustup/dist/x86_64-pc-windows-msvc/rustup-init.exe"
-            $outpath = "C:\Users\circleci\project\rustup-init.exe"
-            Invoke-WebRequest -Uri $url -OutFile $outpath
-            C:\Users\circleci\project\rustup-init.exe -y
-            ls C:\Users\circleci\.cargo\bin
-      - run:
-          environment:
-            CARGO_NET_GIT_FETCH_WITH_CLI: "true"
-          name: "build dashboard"
-          command: |
-            ~\.cargo\bin\cargo.exe build --release -p dashboard
-            ls .
-            ls .\target
-            ls .\target\release
+            # write the private key to a file (env var is base64 encoded with no line breaks (thanks circleci))
+            echo $SSH_KEY | base64 -d >key.pem
+            chmod 600 key.pem
 
-# Invoke jobs via workflows
-# See: https://circleci.com/docs/2.0/configuration-reference/#workflows
+            # copy built server binary to the ec2 instance
+            scp -o StrictHostKeyChecking=no \
+            	-i key.pem target/release/server \
+            	${SSH_USER}@${SSH_HOST}:/home/ubuntu/tokiodreamy-wix-twitch-integration-server
+
+            # enter the instance
+            ssh -o StrictHostKeyChecking=no -i key.pem ${SSH_USER}@${SSH_HOST} <<-'SSH_EOF'
+            	# stop the service
+            	sudo systemctl stop tokiodreamy-wix-twitch-integration-server
+
+            	# move the new binary, overwriting the old one
+            	sudo mv tokiodreamy-wix-twitch-integration-server /usr/local/bin/tokiodreamy-wix-twitch-integration-server
+
+            	sudo cat <<EOF >tokiodreamy-wix-twitch-integration-server.service
+            	[Unit]
+            	Description=Tokiodreamy Wix/Twitch Integration Server
+            	After=network.target
+            	StartLimitIntervalSec=0
+            	[Service]
+            	Type=simple
+            	Restart=always
+            	RestartSec=1
+            	ExecStart=/usr/local/bin/tokiodreamy-wix-twitch-integration-server --dotenv-file-path /home/ubuntu/.env
+            	[Install]
+            	WantedBy=multi-user.target
+            	EOF
+
+            	sudo mv tokiodreamy-wix-twitch-integration-server.service /etc/systemd/system/tokiodreamy-wix-twitch-integration-server.service
+
+            	sudo systemctl daemon-reload
+
+            	# restart the service
+            	sudo systemctl enable tokiodreamy-wix-twitch-integration-server
+            	sudo systemctl start tokiodreamy-wix-twitch-integration-server
+            	sudo systemctl status tokiodreamy-wix-twitch-integration-server
+            SSH_EOF
+            ssh $SSH_USER@$SSH_HOST "<remote deploy command>"
+
 workflows:
-  server-workflow:
-    # when:
-    #   matches:
-    #     pattern: |
-    #       ^server-v\d+\.\d+\.\d+$
-    #     value: << pipeline.git.tag >>
-    jobs:
-      - build-and-deploy-server
-
-  test-workflow:
+  build-and-deploy:
     jobs:
       - test
-
-  windows-build-workflow:
-    jobs:
-      - build-win
-
-# comment
+      - build:
+          requires:
+            - test
+      - deploy:
+          requires:
+            - build
+          branches:
+            only: main
