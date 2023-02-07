@@ -45,14 +45,14 @@ jobs:
             	${SSH_USER}@${SSH_HOST}:/home/ubuntu/tokiodreamy-wix-twitch-integration-server
 
             # enter the instance
-            ssh -o StrictHostKeyChecking=no -i key.pem ${SSH_USER}@${SSH_HOST} <<-'SSH_EOF'
+            ssh -o StrictHostKeyChecking=no -i key.pem ${SSH_USER}@${SSH_HOST} \<<-'SSH_EOF'
             	# stop the service
             	sudo systemctl stop tokiodreamy-wix-twitch-integration-server
 
             	# move the new binary, overwriting the old one
             	sudo mv tokiodreamy-wix-twitch-integration-server /usr/local/bin/tokiodreamy-wix-twitch-integration-server
 
-            	sudo cat <<EOF >tokiodreamy-wix-twitch-integration-server.service
+            	sudo cat \<<EOF >tokiodreamy-wix-twitch-integration-server.service
             	[Unit]
             	Description=Tokiodreamy Wix/Twitch Integration Server
             	After=network.target
