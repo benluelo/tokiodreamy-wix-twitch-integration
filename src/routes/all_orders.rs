@@ -10,7 +10,7 @@ use crate::{
 };
 
 #[tracing::instrument(skip_all)]
-pub(crate) async fn get(_: AuthorizedUser, State(db): State<PgPool>) -> impl IntoResponse {
+pub(crate) async fn get(State(db): State<PgPool>) -> impl IntoResponse {
     all_orders(db)
         .await
         .map(Json)
