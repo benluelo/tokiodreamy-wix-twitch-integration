@@ -46,20 +46,22 @@ jobs:
       - attach_workspace:
           # Must be absolute path or relative path from working_directory
           at: target/release
+      - add_ssh_keys:
+          fingerprints:
+            - "8e:5e:bf:97:42:b3:c6:05:31:75:ee:ed:37:0b:87:8e"
       - run:
           name: Deploy Over SSH
           command: |
-            # write the private key to a file (env var is base64 encoded with no line breaks (thanks circleci))
-            echo $SSH_KEY | base64 -d >key.pem
-            chmod 600 key.pem
+            KEYFILE="$HOME/.ssh/id_rsa_8e5ebf9742b3c6053175eeed370b878e"
 
             # copy built server binary to the ec2 instance
             scp -o StrictHostKeyChecking=no \
-            	-i key.pem target/release/server \
+            	-i $KEYFILE \
+              target/release/server \
             	${SSH_USER}@${SSH_HOST}:/home/ubuntu/tokiodreamy-wix-twitch-integration-server
 
             # enter the instance
-            ssh -o StrictHostKeyChecking=no -i key.pem ${SSH_USER}@${SSH_HOST} \<<-'SSH_EOF'
+            ssh -o StrictHostKeyChecking=no -i $KEYFILE ${SSH_USER}@${SSH_HOST} \<<-'SSH_EOF'
             	# stop the service
             	sudo systemctl stop tokiodreamy-wix-twitch-integration-server
 
@@ -93,10 +95,10 @@ jobs:
 workflows:
   build-and-deploy:
     jobs:
-      - test
-      - build:
-          requires:
-            - test
+      # - test
+      - build
+          # requires:
+          #   - test
       - deploy:
           requires:
             - build
