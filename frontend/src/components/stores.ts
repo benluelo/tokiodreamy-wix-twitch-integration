@@ -25,7 +25,7 @@ const storedPassword = (browser && localStorage.getItem(PASSWORD_KEY)) || '';
 
 export const username = writable(storedUsername);
 export const password = writable(storedPassword);
-export const baseUrl = readable(PUBLIC_SERVER_BASE_URL);
+export const serverBaseUrl = readable(PUBLIC_SERVER_BASE_URL);
 
 username.subscribe((newUsername) => {
   browser && localStorage.setItem(USERNAME_KEY, newUsername);

@@ -1,3 +1,5 @@
 /target
 .env
 .vscode/settings.json
+/frontend/.vercel
+/frontend/build

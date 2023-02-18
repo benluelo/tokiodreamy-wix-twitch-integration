@@ -3,9 +3,10 @@ import type { Breaks } from "../generated/Breaks";
 import type { OrderNumber } from "../generated/OrderNumber";
 import { get, readable, writable } from "svelte/store";
 import type { SseEvent } from "../generated/SseEvent";
-import { baseUrl, breaks, password, username } from "./stores";
+import { serverBaseUrl, breaks, password, username } from "./stores";
 import type { OrderUpdate } from "../generated/OrderUpdate";
 
+export const ssr = false;
 
 export async function login() {
     if (!browser) {
@@ -16,8 +17,10 @@ export async function login() {
         return
     }
 
+    console.log(get(serverBaseUrl));
+
     let auth_header = authHeader();
-    let resp = await fetch(`${get(baseUrl)}/login`, {
+    let resp = await fetch(`${get(serverBaseUrl)}/login`, {
         headers: {
             Authorization: auth_header,
         },
@@ -38,7 +41,7 @@ function authHeader() {
 }
 
 export async function orderCompleted(orderNumber: OrderNumber) {
-    return await fetch(`${get(baseUrl)}/order_completed/${orderNumber}`, {
+    return await fetch(`${get(serverBaseUrl)}/order_completed/${orderNumber}`, {
         headers: {
             Authorization: authHeader(),
         },
@@ -49,7 +52,7 @@ export async function orderCompleted(orderNumber: OrderNumber) {
 }
 
 export async function updateOrder(orderNumber: OrderNumber, orderUpdate: OrderUpdate) {
-    return await fetch(`${get(baseUrl)}/update_order/${orderNumber}`, {
+    return await fetch(`${get(serverBaseUrl)}/update_order/${orderNumber}`, {
         headers: {
             Authorization: authHeader(),
             "Content-Type": "application/json",
@@ -61,7 +64,7 @@ export async function updateOrder(orderNumber: OrderNumber, orderUpdate: OrderUp
 }
 
 export async function registerSse(): Promise<void> {
-    const source = new EventSource(`${get(baseUrl)}/sse`);
+    const source = new EventSource(`${get(serverBaseUrl)}/sse`);
 
     source.onmessage = (msg: MessageEvent<string>) => {
         console.log(msg);
