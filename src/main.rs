@@ -33,6 +33,9 @@ struct Args {
     /// Path to the dotenv file containing the required environment variables.
     #[clap(long, short = 'e')]
     dotenv_file_path: PathBuf,
+
+    #[clap(long, short = 'p')]
+    port: u16,
 }
 
 #[derive(Clone, FromRef)]
@@ -102,9 +105,21 @@ async fn main() -> Result<(), Box<dyn Error>> {
             breaks_reciever,
         });
 
+    // // configure certificate and private key used by https
+    // let config = RustlsConfig::from_pem_file(
+    //     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+    //         .join("self_signed_certs")
+    //         .join("cert.pem"),
+    //     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+    //         .join("self_signed_certs")
+    //         .join("key.pem"),
+    // )
+    // .await
+    // .unwrap();
+
     // run our app with hyper
     // `axum::Server` is a re-export of `hyper::Server`
-    let addr = SocketAddr::from(([0, 0, 0, 0], 3000));
+    let addr = SocketAddr::from(([0, 0, 0, 0], args.port));
     tracing::debug!("listening on {}", addr);
     axum::Server::bind(&addr)
         .serve(app.into_make_service())
