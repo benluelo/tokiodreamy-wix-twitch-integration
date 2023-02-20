@@ -77,7 +77,7 @@ jobs:
             	Type=simple
             	Restart=always
             	RestartSec=1
-            	ExecStart=/usr/local/bin/tokiodreamy-wix-twitch-integration-server --dotenv-file-path /home/ubuntu/.env
+            	ExecStart=/usr/local/bin/tokiodreamy-wix-twitch-integration-server --dotenv-file-path /home/ubuntu/.env --port 443
             	[Install]
             	WantedBy=multi-user.target
             	EOF
