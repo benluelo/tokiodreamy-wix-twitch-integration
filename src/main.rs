@@ -52,16 +52,20 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let args = Args::parse();
     dotenv::from_path(args.dotenv_file_path).unwrap();
 
-    let (breaks_sender, breaks_reciever) =
-        tokio::sync::watch::channel::<Breaks>(Breaks::initialize());
-    let breaks_sender = Arc::new(breaks_sender);
-
     let pool = PgPoolOptions::new()
         // elephant sql free tier limits to a maximum of 5 connections. Use 1 for pgadmin, 1 for
         // psql, 3 for this server
         .max_connections(3)
         .connect(&dotenv::var("DATABASE_URL")?)
         .await?;
+
+    let all_orders = all_orders::all_orders(pool.clone())
+        .await
+        .map_err(|()| "unable to fetch breaks")?;
+
+    let (breaks_sender, breaks_reciever) =
+        tokio::sync::watch::channel::<Breaks>(Breaks::from_ordered(all_orders));
+    let breaks_sender = Arc::new(breaks_sender);
 
     let cors = CorsLayer::new()
         // allow `GET` and `POST` when accessing the resource

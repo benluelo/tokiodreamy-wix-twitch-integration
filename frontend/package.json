@@ -2,7 +2,7 @@
 	"name": "frontend-svelte",
 	"version": "0.0.1",
 	"scripts": {
-		"dev": "vite dev",
+		"dev": "PUBLIC_SERVER_BASE_URL=http://localhost:3000 vite dev",
 		"build": "vite build",
 		"package": "svelte-kit package",
 		"preview": "vite preview",

@@ -1,12 +1,9 @@
 use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
 use sqlx::{query, PgPool};
 
-use crate::{
-    auth::AuthorizedUser,
-    models::{
-        wix::{NewOrder, OrderNumber},
-        OrderWithOrder,
-    },
+use crate::models::{
+    wix::{NewOrder, OrderNumber},
+    OrderWithOrder,
 };
 
 #[tracing::instrument(skip_all)]
@@ -18,7 +15,7 @@ pub(crate) async fn get(State(db): State<PgPool>) -> impl IntoResponse {
         .into_response()
 }
 
-async fn all_orders(db: PgPool) -> Result<Vec<OrderWithOrder>, ()> {
+pub(crate) async fn all_orders(db: PgPool) -> Result<Vec<OrderWithOrder>, ()> {
     query!(
         r#"
         SELECT

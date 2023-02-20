@@ -19,6 +19,11 @@ impl Breaks {
         }
     }
 
+    /// Creates a new [`Breaks`] from the provided [`Vec`]. Assumes that the vec is sorted.
+    pub fn from_ordered(ordered_breaks: Vec<OrderWithOrder>) -> Breaks {
+        Self { ordered_breaks }
+    }
+
     pub fn move_up(&mut self, idx: usize) {
         self.ordered_breaks.swap(idx, idx - 1)
     }
